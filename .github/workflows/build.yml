@@ -11,6 +11,15 @@ on:
       - main
       - '[0-9]+.[0-9]+.x'
 
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   build:
     name: Build and Test
@@ -39,7 +48,12 @@ jobs:
           cache: 'maven'
       
       - name: Build with Maven
-        run: ./mvnw -s settings.xml clean verify -U -B -Dcheckstyle.skip=false -Dmaven.javadoc.skip=true
+        run: |
+          ./mvnw -s settings.xml clean verify -U -B -Dcheckstyle.skip=false -Dmaven.javadoc.skip=true
+          echo "### Build Summary :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "Build completed successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "- Java Version: 17" >> $GITHUB_STEP_SUMMARY
+          echo "- FalkorDB Version: latest" >> $GITHUB_STEP_SUMMARY
         env:
           SDF_FALKORDB_VERSION: latest
       

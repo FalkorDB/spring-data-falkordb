@@ -8,6 +8,13 @@ on:
       - '[0-9]+.[0-9]+.x'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   publish:
     name: Publish SNAPSHOT to Maven
@@ -37,7 +44,12 @@ jobs:
           cache: 'maven'
       
       - name: Build and Deploy to Maven Repository
-        run: ./mvnw -s settings.xml clean deploy -U -B -Dcheckstyle.skip=true -Dmaven.javadoc.skip=false
+        run: |
+          ./mvnw -s settings.xml clean deploy -U -B -Dcheckstyle.skip=true -Dmaven.javadoc.skip=false
+          echo "### Publish Summary :package:" >> $GITHUB_STEP_SUMMARY
+          echo "Successfully published artifacts to Maven repository!" >> $GITHUB_STEP_SUMMARY
+          echo "- Version: 1.0.0-SNAPSHOT" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
         env:
           SDF_FALKORDB_VERSION: latest
           ARTIFACTORY_USR: ${{ secrets.ARTIFACTORY_USERNAME }}
