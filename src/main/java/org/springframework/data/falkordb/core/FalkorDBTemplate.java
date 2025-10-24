@@ -345,10 +345,20 @@ public class FalkorDBTemplate implements FalkorDBOperations {
 		});
 	}
 
+	/**
+	 * Returns the {@link FalkorDBEntityConverter} used by this template.
+	 *
+	 * @return the entity converter
+	 */
 	public FalkorDBEntityConverter getConverter() {
 		return this.entityConverter;
 	}
 
+	/**
+	 * Returns the {@link FalkorDBMappingContext} used by this template.
+	 *
+	 * @return the mapping context
+	 */
 	public FalkorDBMappingContext getMappingContext() {
 		return this.mappingContext;
 	}
