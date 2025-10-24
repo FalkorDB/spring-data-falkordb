@@ -39,7 +39,7 @@ import org.springframework.data.repository.query.ReturnedType;
  * @author Shahar Biron (FalkorDB adaptation)
  * @since 1.0
  */
-class StringBasedFalkorDBQuery implements RepositoryQuery {
+public class StringBasedFalkorDBQuery implements RepositoryQuery {
 
 	/**
 	 * The query method.
@@ -56,7 +56,7 @@ class StringBasedFalkorDBQuery implements RepositoryQuery {
 	 * @param method must not be {@literal null}.
 	 * @param falkorDBOperations must not be {@literal null}.
 	 */
-	StringBasedFalkorDBQuery(final FalkorDBQueryMethod method, final FalkorDBOperations falkorDBOperations) {
+	public StringBasedFalkorDBQuery(final FalkorDBQueryMethod method, final FalkorDBOperations falkorDBOperations) {
 		this.queryMethod = method;
 		this.operations = falkorDBOperations;
 	}
