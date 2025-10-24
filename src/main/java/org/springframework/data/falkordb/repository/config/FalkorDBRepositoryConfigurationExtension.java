@@ -42,7 +42,7 @@ import org.springframework.data.repository.core.RepositoryMetadata;
  */
 public class FalkorDBRepositoryConfigurationExtension extends RepositoryConfigurationExtensionSupport {
 
-	private static final String FALKORDB_TEMPLATE_REF = "falkorDB-template-ref";
+	private static final String FALKORDB_TEMPLATE_REF = "falkorDBTemplateRef";
 
 	@Override
 	public String getModuleName() {

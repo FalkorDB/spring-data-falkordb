@@ -78,7 +78,7 @@ public class FalkorDBRepositoryFactory extends RepositoryFactorySupport {
 	@Override
 	protected Object getTargetRepository(RepositoryInformation information) {
 		FalkorDBEntityInformation<?, Object> entityInformation = getEntityInformation(information.getDomainType());
-		return getTargetRepositoryViaReflection(information, entityInformation, falkorDBTemplate);
+		return getTargetRepositoryViaReflection(information, falkorDBTemplate, entityInformation);
 	}
 
 	@Override
@@ -86,6 +86,7 @@ public class FalkorDBRepositoryFactory extends RepositoryFactorySupport {
 		return SimpleFalkorDBRepository.class;
 	}
 
+	@Override
 	protected Optional<QueryLookupStrategy> getQueryLookupStrategy(@Nullable QueryLookupStrategy.Key key) {
 
 		return Optional.of(new FalkorDBQueryLookupStrategy());
