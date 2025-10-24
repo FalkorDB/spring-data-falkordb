@@ -28,6 +28,7 @@ import org.springframework.data.falkordb.core.mapping.FalkorDBMappingContext;
 import org.springframework.data.falkordb.core.mapping.FalkorDBPersistentEntity;
 import org.springframework.data.falkordb.core.mapping.FalkorDBPersistentProperty;
 import org.springframework.data.falkordb.repository.query.FalkorDBQueryMethod;
+import org.springframework.data.falkordb.repository.query.StringBasedFalkorDBQuery;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.repository.core.NamedQueries;
 import org.springframework.data.repository.core.RepositoryInformation;
@@ -86,7 +87,6 @@ public class FalkorDBRepositoryFactory extends RepositoryFactorySupport {
 		return SimpleFalkorDBRepository.class;
 	}
 
-	@Override
 	protected Optional<QueryLookupStrategy> getQueryLookupStrategy(@Nullable QueryLookupStrategy.Key key) {
 
 		return Optional.of(new FalkorDBQueryLookupStrategy());
@@ -104,20 +104,17 @@ public class FalkorDBRepositoryFactory extends RepositoryFactorySupport {
 			FalkorDBQueryMethod queryMethod = new FalkorDBQueryMethod(method, metadata, factory,
 					mappingContext);
 
-			// TODO: Implement query resolution logic
-			// For now, return a simple implementation that throws an exception
-			return new RepositoryQuery() {
-				@Override
-				public Object execute(Object[] parameters) {
-					throw new UnsupportedOperationException(
-							"Query methods are not yet fully implemented. Use FalkorDBTemplate for custom queries.");
-				}
+			// Check if the method has an annotated query
+			if (queryMethod.hasAnnotatedQuery()) {
+				return new StringBasedFalkorDBQuery(queryMethod, falkorDBTemplate);
+			}
 
-				@Override
-				public FalkorDBQueryMethod getQueryMethod() {
-					return queryMethod;
-				}
-			};
+			// For derived queries, throw an exception with a clear message
+			throw new IllegalStateException(
+					String.format("Derived query methods are not yet supported. "
+							+ "Please use @Query annotation with a Cypher query for method '%s' in repository '%s', "
+							+ "or use FalkorDBTemplate directly for custom queries.",
+							method.getName(), metadata.getRepositoryInterface().getSimpleName()));
 		}
 
 	}
