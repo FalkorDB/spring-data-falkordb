@@ -544,32 +544,114 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 
 	/**
 	 * Ensure an entity is saved and return its ID.
+	 * This method implements automatic cascade save for related entities.
 	 * @param entity the entity to ensure is saved
-	 * @return the ID of the entity, or null if unable to determine ID
+	 * @return the ID of the entity, or null if unable to save
 	 */
 	private Object ensureEntitySaved(Object entity) {
-		// This is a simplified approach - in a full implementation, you might:
-		// 1. Check if the entity already has an ID
-		// 2. If not, save it first
-		// 3. Return the ID
-
-		// For now, we'll assume entities are saved elsewhere or already have IDs
-		// This method would need to be enhanced with proper entity saving
-		// logic
+		if (entity == null) {
+			return null;
+		}
 
 		FalkorDBPersistentEntity<?> persistentEntity = this.mappingContext
 			.getRequiredPersistentEntity(entity.getClass());
 		FalkorDBPersistentProperty idProperty = persistentEntity.getIdProperty();
 
+		// Check if entity already has an ID
 		if (idProperty != null) {
-			Object id = persistentEntity.getPropertyAccessor(entity).getProperty(idProperty);
-			if (id != null) {
-				return id;
+			Object existingId = persistentEntity.getPropertyAccessor(entity).getProperty(idProperty);
+			if (existingId != null) {
+				// Entity already has an ID, return it
+				return existingId;
 			}
 		}
 
-		// TODO: Save entity if it doesn't have an ID yet
-		return null;
+		// Entity doesn't have an ID yet, we need to save it
+		if (this.falkorDBClient == null) {
+			// No client available, cannot save
+			return null;
+		}
+
+		try {
+			// Save the entity and get its ID
+			return saveEntityAndGetId(entity, persistentEntity);
+		}
+		catch (Exception ex) {
+			// Failed to save entity
+			return null;
+		}
+	}
+
+	/**
+	 * Save an entity and return its internal FalkorDB ID.
+	 * This is a recursive save that handles nested relationships.
+	 * @param entity the entity to save
+	 * @param persistentEntity the persistent entity metadata
+	 * @return the internal FalkorDB ID of the saved entity
+	 */
+	private Object saveEntityAndGetId(Object entity, FalkorDBPersistentEntity<?> persistentEntity) {
+		String primaryLabel = getPrimaryLabel(persistentEntity);
+
+		// Convert entity to properties (excluding relationships)
+		Map<String, Object> properties = new HashMap<>();
+		PersistentPropertyAccessor<?> accessor = persistentEntity.getPropertyAccessor(entity);
+
+		persistentEntity.doWithProperties((FalkorDBPersistentProperty property) -> {
+			if (property.isIdProperty() && property.isInternalIdProperty()) {
+				// Skip internal IDs as they're managed by FalkorDB
+				return;
+			}
+
+			if (property.isRelationship()) {
+				// Skip relationships during initial entity save
+				// They will be handled after the entity is saved
+				return;
+			}
+
+			Object value = accessor.getProperty(property);
+			if (value != null) {
+				Object convertedValue = convertValueForFalkorDB(value);
+				properties.put(property.getGraphPropertyName(), convertedValue);
+			}
+		});
+
+		// Build CREATE query
+		StringBuilder cypher = new StringBuilder("CREATE (n:");
+		cypher.append(primaryLabel);
+		cypher.append(" ");
+
+		if (!properties.isEmpty()) {
+			cypher.append("{ ");
+			String propertiesStr = properties.keySet()
+				.stream()
+				.map(key -> key + ": $" + key)
+				.collect(java.util.stream.Collectors.joining(", "));
+			cypher.append(propertiesStr);
+			cypher.append(" }");
+		}
+
+		cypher.append(") RETURN id(n) as nodeId");
+
+		// Execute save and get the ID
+		Object nodeId = this.falkorDBClient.query(cypher.toString(), properties, result -> {
+			for (FalkorDBClient.Record record : result.records()) {
+				return record.get("nodeId");
+			}
+			return null;
+		});
+
+		if (nodeId != null) {
+			// Update the entity's ID property if it exists and is writable
+			FalkorDBPersistentProperty idProperty = persistentEntity.getIdProperty();
+			if (idProperty != null && !idProperty.isImmutable()) {
+				accessor.setProperty(idProperty, nodeId);
+			}
+
+			// Now save relationships for this entity
+			saveRelationships(entity, nodeId);
+		}
+
+		return nodeId;
 	}
 
 	/**
