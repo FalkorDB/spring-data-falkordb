@@ -27,10 +27,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.data.falkordb.core.FalkorDBOperations;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.repository.query.RepositoryQuery;
 import org.springframework.data.repository.query.ResultProcessor;
 import org.springframework.data.repository.query.ReturnedType;
+import org.springframework.util.StringUtils;
 
 /**
  * {@link RepositoryQuery} implementation that executes custom Cypher queries defined via
@@ -114,16 +117,23 @@ public class StringBasedFalkorDBQuery implements RepositoryQuery {
 	private Map<String, Object> createParameterMap(final Object[] parameters) {
 		Map<String, Object> parameterMap = new HashMap<>();
 
-		// Add indexed parameters ($0, $1, ...)
-		if (parameters != null) {
-			for (int i = 0; i < parameters.length; i++) {
-				parameterMap.put(String.valueOf(i), parameters[i]);
-			}
+		if (parameters == null || parameters.length == 0) {
+			return parameterMap;
 		}
 
-		// Add named parameters if available
-		// This would typically involve analyzing @Param annotations
-		// For now, we'll keep it simple with indexed parameters
+		// Add indexed parameters ($0, $1, ...)
+		for (int i = 0; i < parameters.length; i++) {
+			parameterMap.put(String.valueOf(i), parameters[i]);
+		}
+
+		// Add named parameters from @Param annotations
+		java.lang.reflect.Parameter[] methodParameters = queryMethod.getMethod().getParameters();
+		for (int i = 0; i < methodParameters.length; i++) {
+			Param paramAnnotation = AnnotationUtils.findAnnotation(methodParameters[i], Param.class);
+			if (paramAnnotation != null && StringUtils.hasText(paramAnnotation.value())) {
+				parameterMap.put(paramAnnotation.value(), parameters[i]);
+			}
+		}
 
 		return parameterMap;
 	}

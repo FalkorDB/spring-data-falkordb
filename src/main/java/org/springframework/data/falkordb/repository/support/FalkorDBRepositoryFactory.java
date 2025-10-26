@@ -27,6 +27,7 @@ import org.springframework.data.falkordb.core.FalkorDBTemplate;
 import org.springframework.data.falkordb.core.mapping.FalkorDBMappingContext;
 import org.springframework.data.falkordb.core.mapping.FalkorDBPersistentEntity;
 import org.springframework.data.falkordb.core.mapping.FalkorDBPersistentProperty;
+import org.springframework.data.falkordb.repository.query.DerivedFalkorDBQuery;
 import org.springframework.data.falkordb.repository.query.FalkorDBQueryMethod;
 import org.springframework.data.falkordb.repository.query.StringBasedFalkorDBQuery;
 import org.springframework.data.projection.ProjectionFactory;
@@ -109,12 +110,8 @@ public class FalkorDBRepositoryFactory extends RepositoryFactorySupport {
 				return new StringBasedFalkorDBQuery(queryMethod, falkorDBTemplate);
 			}
 
-			// For derived queries, throw an exception with a clear message
-			throw new IllegalStateException(
-					String.format("Derived query methods are not yet supported. "
-							+ "Please use @Query annotation with a Cypher query for method '%s' in repository '%s', "
-							+ "or use FalkorDBTemplate directly for custom queries.",
-							method.getName(), metadata.getRepositoryInterface().getSimpleName()));
+			// For derived queries, use DerivedFalkorDBQuery
+			return new DerivedFalkorDBQuery(queryMethod, falkorDBTemplate);
 		}
 
 	}
