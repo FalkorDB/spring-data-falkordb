@@ -88,6 +88,7 @@ public class FalkorDBRepositoryFactory extends RepositoryFactorySupport {
 		return SimpleFalkorDBRepository.class;
 	}
 
+	@Override
 	protected Optional<QueryLookupStrategy> getQueryLookupStrategy(@Nullable QueryLookupStrategy.Key key) {
 
 		return Optional.of(new FalkorDBQueryLookupStrategy());
@@ -133,6 +134,9 @@ public class FalkorDBRepositoryFactory extends RepositoryFactorySupport {
 		@Override
 		@SuppressWarnings("unchecked")
 		public ID getId(T t) {
+			if (t == null) {
+				return null;
+			}
 			return (ID) entity.getIdentifierAccessor(t).getIdentifier();
 		}
 

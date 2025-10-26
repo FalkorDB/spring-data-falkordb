@@ -30,6 +30,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.falkordb.core.FalkorDBClient;
 import org.springframework.data.falkordb.core.schema.Relationship;
 import org.springframework.data.mapping.PersistentPropertyAccessor;
@@ -47,6 +49,8 @@ import org.springframework.util.Assert;
  * @since 1.0
  */
 public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
+
+	private static final Logger logger = LoggerFactory.getLogger(DefaultFalkorDBEntityConverter.class);
 
 	/**
 	 * The mapping context.
@@ -535,10 +539,8 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 
 		}
 		catch (Exception ex) {
-			// Log error - relationship save failed
-			// In a production system, you might want to throw an exception or
-			// handle this
-			// differently
+			logger.warn("Failed to save relationship of type {} for entity: {}", relationshipType,
+					relatedEntity.getClass().getSimpleName(), ex);
 		}
 	}
 
@@ -577,7 +579,8 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			return saveEntityAndGetId(entity, persistentEntity);
 		}
 		catch (Exception ex) {
-			// Failed to save entity
+			logger.warn("Failed to cascade save entity of type {}: {}", entity.getClass().getSimpleName(),
+					ex.getMessage(), ex);
 			return null;
 		}
 	}
@@ -615,9 +618,21 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			}
 		});
 
-		// Build CREATE query
+		// Build CREATE query with all labels
+		List<String> labels = new ArrayList<>();
+		labels.add(primaryLabel);
+		org.springframework.data.falkordb.core.schema.Node nodeAnn = persistentEntity.getType()
+				.getAnnotation(org.springframework.data.falkordb.core.schema.Node.class);
+		if (nodeAnn != null) {
+			for (String label : nodeAnn.labels()) {
+				if (label != null && !label.isEmpty() && !label.equals(primaryLabel)) {
+					labels.add(label);
+				}
+			}
+		}
+
 		StringBuilder cypher = new StringBuilder("CREATE (n:");
-		cypher.append(primaryLabel);
+		cypher.append(String.join(":", labels));
 		cypher.append(" ");
 
 		if (!properties.isEmpty()) {

@@ -238,7 +238,7 @@ public class DerivedCypherQueryGenerator {
 				queryParameters.put(paramName, parameters[parameterIndex.get() - 1]);
 				break;
 			case NOT_IN:
-				cypher.append("NOT n.").append(property).append(" IN $").append(paramName);
+				cypher.append("NOT (n.").append(property).append(" IN $").append(paramName).append(")");
 				queryParameters.put(paramName, parameters[parameterIndex.get() - 1]);
 				break;
 			default:
