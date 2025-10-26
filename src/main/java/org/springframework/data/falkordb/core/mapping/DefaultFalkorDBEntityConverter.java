@@ -729,7 +729,7 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 	private String buildRelationshipQuery(Relationship.Direction direction, String relationshipType,
 			String targetLabel) {
 		StringBuilder cypher = new StringBuilder();
-		cypher.append("MATCH (source) WHERE id(source) = $sourceId");
+		cypher.append("MATCH (source) WHERE id(source) = $sourceId ");
 
 		switch (direction) {
 			case OUTGOING:
@@ -755,7 +755,8 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 				break;
 		}
 
-		cypher.append(" RETURN target");
+		// Return target node with its properties and ID
+		cypher.append(" RETURN target, id(target) as targetId");
 		return cypher.toString();
 	}
 
@@ -775,11 +776,9 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		try {
 			return this.falkorDBClient.query(cypher, parameters, result -> {
 				for (FalkorDBClient.Record record : result.records()) {
-					// Get the target node from the record
-					Object targetNode = record.get("target");
-					if (targetNode instanceof FalkorDBClient.Record) {
-						return read(targetType, (FalkorDBClient.Record) targetNode);
-					}
+					// Try to read the entity directly from the record
+					// The record should contain the target node's properties
+					return readRelatedEntity(record, targetType);
 				}
 				return null;
 			});
@@ -808,13 +807,10 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			return this.falkorDBClient.query(cypher, parameters, result -> {
 				List<Object> relatedEntities = new ArrayList<>();
 				for (FalkorDBClient.Record record : result.records()) {
-					// Get the target node from the record
-					Object targetNode = record.get("target");
-					if (targetNode instanceof FalkorDBClient.Record) {
-						Object entity = read(targetType, (FalkorDBClient.Record) targetNode);
-						if (entity != null) {
-							relatedEntities.add(entity);
-						}
+					// Read the related entity from the record
+					Object entity = readRelatedEntity(record, targetType);
+					if (entity != null) {
+						relatedEntities.add(entity);
 					}
 				}
 				return relatedEntities;
@@ -834,6 +830,188 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 	 */
 	private String buildRelationshipSaveQuery(Relationship.Direction direction, String relationshipType) {
 		return buildRelationshipSaveQuery(direction, relationshipType, null);
+	}
+
+	/**
+	 * Read a related entity from a record.
+	 * This method tries multiple strategies to extract the target node data.
+	 * @param record the record containing the relationship result
+	 * @param targetType the target entity type
+	 * @return the converted entity, or null if extraction fails
+	 */
+	private Object readRelatedEntity(FalkorDBClient.Record record, Class<?> targetType) {
+		try {
+			// Strategy 1: Try to get target node directly
+			Object targetNode = record.get("target");
+			if (targetNode instanceof FalkorDBClient.Record) {
+				return read(targetType, (FalkorDBClient.Record) targetNode);
+			}
+
+			// Strategy 2: Try to create a record-like structure from available data
+			// Get targetId if available
+			Object targetId = record.get("targetId");
+			if (targetNode != null && targetId != null) {
+				// Create a wrapper record that includes the node data and ID
+				return readFromNodeWithId(targetNode, targetId, targetType);
+			}
+
+			// Strategy 3: If the record itself has the target properties, read directly
+			if (targetNode != null) {
+				return readFromNodeObject(targetNode, targetType);
+			}
+
+			return null;
+		}
+		catch (Exception ex) {
+			return null;
+		}
+	}
+
+	/**
+	 * Read an entity from a node object that has an ID.
+	 * @param nodeObj the node object
+	 * @param nodeId the node ID
+	 * @param targetType the target entity type
+	 * @return the converted entity
+	 */
+	private Object readFromNodeWithId(Object nodeObj, Object nodeId, Class<?> targetType) {
+		try {
+			// Create a simple record wrapper that provides the necessary data
+			SimpleRecord wrapperRecord = new SimpleRecord(nodeObj, nodeId);
+			return read(targetType, wrapperRecord);
+		}
+		catch (Exception ex) {
+			return null;
+		}
+	}
+
+	/**
+	 * Read an entity from a raw node object.
+	 * @param nodeObj the node object from FalkorDB
+	 * @param targetType the target entity type
+	 * @return the converted entity
+	 */
+	private Object readFromNodeObject(Object nodeObj, Class<?> targetType) {
+		try {
+			// If the node object has properties, extract them
+			Map<String, Object> properties = extractPropertiesFromNode(nodeObj);
+			if (properties != null && !properties.isEmpty()) {
+				// Create a record from the properties
+				SimpleRecord record = new SimpleRecord(properties);
+				return read(targetType, record);
+			}
+			return null;
+		}
+		catch (Exception ex) {
+			return null;
+		}
+	}
+
+	/**
+	 * Extract properties from a node object using reflection.
+	 * @param nodeObj the node object
+	 * @return map of properties, or null if extraction fails
+	 */
+	private Map<String, Object> extractPropertiesFromNode(Object nodeObj) {
+		if (nodeObj == null) {
+			return null;
+		}
+
+		try {
+			// Try getProperties method
+			java.lang.reflect.Method getPropertiesMethod = nodeObj.getClass().getMethod("getProperties");
+			@SuppressWarnings("unchecked")
+			Map<String, Object> properties = (Map<String, Object>) getPropertiesMethod.invoke(nodeObj);
+			if (properties != null) {
+				// Convert property values if needed
+				Map<String, Object> converted = new HashMap<>();
+				for (Map.Entry<String, Object> entry : properties.entrySet()) {
+					Object value = entry.getValue();
+					// Extract value from Property wrapper if needed
+					if (value != null) {
+						Object extractedValue = extractValueFromPropertyObject(value);
+						converted.put(entry.getKey(), extractedValue);
+					}
+				}
+				return converted;
+			}
+		}
+		catch (Exception ex) {
+			// Method not available or failed
+		}
+
+		return null;
+	}
+
+	/**
+	 * Simple record implementation for wrapping node data.
+	 */
+	private static class SimpleRecord implements FalkorDBClient.Record {
+		private final Map<String, Object> data;
+		private final Object nodeId;
+
+		SimpleRecord(Map<String, Object> properties) {
+			this.data = properties;
+			this.nodeId = null;
+		}
+
+		SimpleRecord(Object nodeObj, Object nodeId) {
+			this.data = new HashMap<>();
+			this.nodeId = nodeId;
+			// Try to extract properties from node object
+			try {
+				java.lang.reflect.Method getPropertiesMethod = nodeObj.getClass().getMethod("getProperties");
+				@SuppressWarnings("unchecked")
+				Map<String, Object> properties = (Map<String, Object>) getPropertiesMethod.invoke(nodeObj);
+				if (properties != null) {
+					for (Map.Entry<String, Object> entry : properties.entrySet()) {
+						Object value = entry.getValue();
+						if (value != null) {
+							// Extract value from Property wrapper
+							try {
+								java.lang.reflect.Method getValueMethod = value.getClass().getMethod("getValue");
+								data.put(entry.getKey(), getValueMethod.invoke(value));
+							}
+							catch (Exception e) {
+								data.put(entry.getKey(), value);
+							}
+						}
+					}
+				}
+			}
+			catch (Exception ex) {
+				// Failed to extract properties
+			}
+		}
+
+		@Override
+		public Object get(int index) {
+			// Not supported for simple records
+			return null;
+		}
+
+		@Override
+		public Object get(String key) {
+			if ("nodeId".equals(key) || "targetId".equals(key)) {
+				return nodeId;
+			}
+			return data.get(key);
+		}
+
+		@Override
+		public Iterable<String> keys() {
+			return data.keySet();
+		}
+
+		@Override
+		public int size() {
+			return data.size();
+		}
+
+		@Override
+		public Iterable<Object> values() {
+			return data.values();
+		}
 	}
 
 	/**
