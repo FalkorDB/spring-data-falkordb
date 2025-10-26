@@ -88,7 +88,6 @@ public class FalkorDBRepositoryFactory extends RepositoryFactorySupport {
 		return SimpleFalkorDBRepository.class;
 	}
 
-	@Override
 	protected Optional<QueryLookupStrategy> getQueryLookupStrategy(@Nullable QueryLookupStrategy.Key key) {
 
 		return Optional.of(new FalkorDBQueryLookupStrategy());
