@@ -98,20 +98,36 @@ public class FalkorDBTemplate implements FalkorDBOperations {
 		cypher.append(primaryLabel);
 		cypher.append(" ");
 
+		// Separate regular properties from interned properties
+		Map<String, Object> regularParams = new HashMap<>();
+		List<String> propertyAssignments = new ArrayList<>();
+		
+		for (Map.Entry<String, Object> entry : properties.entrySet()) {
+			String key = entry.getKey();
+			Object value = entry.getValue();
+			
+			if (value instanceof DefaultFalkorDBEntityConverter.InternedValue) {
+				// For interned values, inline the intern() function call
+				DefaultFalkorDBEntityConverter.InternedValue internedValue = 
+					(DefaultFalkorDBEntityConverter.InternedValue) value;
+				propertyAssignments.add(key + ": intern('" + internedValue.getValue() + "')");
+			} else {
+				// For regular values, use parameters
+				propertyAssignments.add(key + ": $" + key);
+				regularParams.put(key, value);
+			}
+		}
+
 		// Add properties
-		if (!properties.isEmpty()) {
+		if (!propertyAssignments.isEmpty()) {
 			cypher.append("{ ");
-			String propertiesStr = properties.keySet()
-				.stream()
-				.map(key -> key + ": $" + key)
-				.collect(Collectors.joining(", "));
-			cypher.append(propertiesStr);
+			cypher.append(String.join(", ", propertyAssignments));
 			cypher.append(" }");
 		}
 
 		cypher.append(") RETURN n, id(n) as nodeId");
 
-		return this.falkorDBClient.query(cypher.toString(), properties, result -> {
+		return this.falkorDBClient.query(cypher.toString(), regularParams, result -> {
 			// Convert back to entity
 			for (FalkorDBClient.Record record : result.records()) {
 				T savedEntity = (T) this.entityConverter.read(entityType, record);
