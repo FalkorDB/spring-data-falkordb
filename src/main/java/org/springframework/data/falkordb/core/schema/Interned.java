@@ -24,7 +24,6 @@ package org.springframework.data.falkordb.core.schema;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
-import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
@@ -63,7 +62,6 @@ import org.apiguardian.api.API;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.FIELD, ElementType.ANNOTATION_TYPE })
 @Documented
-@Inherited
 @API(status = API.Status.STABLE, since = "1.0")
 public @interface Interned {
 
