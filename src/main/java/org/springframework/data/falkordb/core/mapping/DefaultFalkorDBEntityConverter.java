@@ -338,6 +338,10 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			else if (targetType == Byte.class || targetType == byte.class) {
 				return numValue.byteValue();
 			}
+			else if (targetType == String.class) {
+				// Convert number to string (e.g., Long ID to String)
+				return numValue.toString();
+			}
 		}
 
 		// Handle String conversions
