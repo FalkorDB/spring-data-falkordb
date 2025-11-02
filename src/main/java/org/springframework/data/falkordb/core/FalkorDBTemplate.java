@@ -361,6 +361,16 @@ public class FalkorDBTemplate implements FalkorDBOperations {
 		});
 	}
 
+	@Override
+	public <T> T query(String cypher, Map<String, Object> parameters,
+					   java.util.function.Function<FalkorDBClient.QueryResult, T> resultMapper) {
+		Assert.hasText(cypher, "Cypher query must not be null or empty");
+		Assert.notNull(parameters, "Parameters must not be null");
+		Assert.notNull(resultMapper, "Result mapper must not be null");
+
+		return this.falkorDBClient.query(cypher, parameters, resultMapper);
+	}
+
 	/**
 	 * Returns the {@link FalkorDBEntityConverter} used by this template.
 	 *
