@@ -121,17 +121,16 @@ public class StringBasedFalkorDBQuery implements RepositoryQuery {
 			return parameterMap;
 		}
 
-		// Add indexed parameters ($0, $1, ...)
-		for (int i = 0; i < parameters.length; i++) {
-			parameterMap.put(String.valueOf(i), parameters[i]);
-		}
-
 		// Add named parameters from @Param annotations
 		java.lang.reflect.Parameter[] methodParameters = queryMethod.getMethod().getParameters();
 		for (int i = 0; i < methodParameters.length; i++) {
 			Param paramAnnotation = AnnotationUtils.findAnnotation(methodParameters[i], Param.class);
 			if (paramAnnotation != null && StringUtils.hasText(paramAnnotation.value())) {
 				parameterMap.put(paramAnnotation.value(), parameters[i]);
+			}
+			else {
+				// Fallback to indexed parameters only if no @Param annotation
+				parameterMap.put(String.valueOf(i), parameters[i]);
 			}
 		}
 
