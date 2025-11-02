@@ -117,6 +117,49 @@ class InternedAnnotationTest {
 		assertThat(internedValue.getValue()).isEqualTo("O\\'Brien\\'s status");
 	}
 
+	@Test
+	void shouldEscapeBackslashesAndSingleQuotesInInternedValue() {
+		// Given
+		TestEntity testEntity = new TestEntity();
+		testEntity.id = "123";
+		testEntity.name = "John Doe";
+		testEntity.status = "test\\value"; // Contains backslash
+
+		Map<String, Object> properties = new HashMap<>();
+
+		// When
+		entityConverter.write(testEntity, properties);
+
+		// Then
+		DefaultFalkorDBEntityConverter.InternedValue internedValue = 
+			(DefaultFalkorDBEntityConverter.InternedValue) properties.get("status");
+		
+		// Backslashes should be escaped first (doubled)
+		assertThat(internedValue.getValue()).isEqualTo("test\\\\value");
+	}
+
+	@Test
+	void shouldEscapeBothBackslashesAndQuotesInInternedValue() {
+		// Given
+		TestEntity testEntity = new TestEntity();
+		testEntity.id = "123";
+		testEntity.name = "John Doe";
+		testEntity.status = "path\\to\\'file'"; // Contains both backslashes and quotes
+
+		Map<String, Object> properties = new HashMap<>();
+
+		// When
+		entityConverter.write(testEntity, properties);
+
+		// Then
+		DefaultFalkorDBEntityConverter.InternedValue internedValue = 
+			(DefaultFalkorDBEntityConverter.InternedValue) properties.get("status");
+		
+		// Backslashes escaped first (doubled), then quotes escaped
+		// Input: path\to\'file' -> Escape \: path\\to\\'file' -> Escape ': path\\to\\\'file\'
+		assertThat(internedValue.getValue()).isEqualTo("path\\\\to\\\\\\'file\\'");
+	}
+
 	@Node("TestEntity")
 	static class TestEntity {
 		@Id

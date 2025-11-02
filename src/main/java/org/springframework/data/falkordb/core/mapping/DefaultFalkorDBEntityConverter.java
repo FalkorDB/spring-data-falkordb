@@ -211,8 +211,8 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		// Apply intern() function for low-cardinality string properties
 		if (property != null && property.isInterned() && value instanceof String) {
 			String strValue = (String) value;
-			// Escape single quotes in the string value
-			String escapedValue = strValue.replace("'", "\\'");
+			// Escape backslashes first, then single quotes
+			String escapedValue = strValue.replace("\\", "\\\\").replace("'", "\\'");
 			// Return as a special marker object that will be handled during Cypher generation
 			return new InternedValue(escapedValue);
 		}
