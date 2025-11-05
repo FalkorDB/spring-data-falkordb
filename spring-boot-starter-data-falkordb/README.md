@@ -66,11 +66,10 @@ public interface PersonRepository extends FalkorDBRepository<Person, Long> {
 }
 ```
 
-### 5. Enable Repositories and Use in Your Application
+### 5. Use in Your Application
 
 ```java
-@SpringBootApplication
-@EnableFalkorDBRepositories
+@SpringBootApplication  // Repositories are auto-enabled by the starter!
 public class MyApplication {
     
     public static void main(String[] args) {
@@ -102,6 +101,12 @@ public class PersonController {
 |----------|-------------|---------|
 | `spring.data.falkordb.uri` | FalkorDB server URI (format: `falkordb://host:port` or `redis://host:port`) | `falkordb://localhost:6379` |
 | `spring.data.falkordb.database` | Database/graph name **(required)** | - |
+| `spring.data.falkordb.connection-timeout` | Connection timeout (e.g., `2s`, `500ms`) | `2s` |
+| `spring.data.falkordb.socket-timeout` | Socket timeout (e.g., `2s`, `500ms`) | `2s` |
+| `spring.data.falkordb.repositories.enabled` | Enable/disable repository auto-configuration | `true` |
+
+> **Note:** The `@EnableFalkorDBRepositories` annotation is **optional**. Repositories are automatically
+> enabled by the starter. Use `spring.data.falkordb.repositories.enabled=false` to disable them.
 
 ## Health Check
 

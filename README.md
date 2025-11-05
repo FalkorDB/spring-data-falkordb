@@ -175,17 +175,22 @@ public interface PersonRepository extends FalkorDBRepository<Person, Long> {
 
 #### Spring Boot (Auto-Configuration)
 
-With the Spring Boot Starter, no configuration class is needed! Just add your properties and use `@EnableFalkorDBRepositories`:
+With the Spring Boot Starter, no configuration class is needed! Just set your properties:
 
 ```java
 @SpringBootApplication
-@EnableFalkorDBRepositories
 public class Application {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
 }
 ```
+
+> **Note:** The `@EnableFalkorDBRepositories` annotation is **optional** when using the Spring Boot Starter.
+> Repositories are automatically enabled by default. You can disable them by setting:
+> ```properties
+> spring.data.falkordb.repositories.enabled=false
+> ```
 
 #### Standalone Spring (Manual Configuration)
 
@@ -809,12 +814,21 @@ To verify everything is working correctly:
 
 ## 🔧 Advanced Configuration
 
+### Disabling Auto-Configuration
+
+To disable specific auto-configuration:
+
+```properties
+# Disable repository auto-configuration
+spring.data.falkordb.repositories.enabled=false
+```
+
 ### Connection Pool Settings
 
 ```java
 @Bean
 public FalkorDBClient falkorDBClient() {
-    Driver driver = FalkorDB.driver("localhost", 6379);
+    Driver driver = new DriverImpl("localhost", 6379);
     // Configure connection pool if needed
     return new DefaultFalkorDBClient(driver, "myapp");
 }

@@ -1,6 +1,7 @@
 package org.springframework.boot.autoconfigure.data.falkordb;
 
 import org.springframework.boot.autoconfigure.data.AbstractRepositoryConfigurationSourceSupport;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.data.falkordb.repository.config.EnableFalkorDBRepositories;
 import org.springframework.data.falkordb.repository.config.FalkorDBRepositoryConfigurationExtension;
 import org.springframework.data.repository.config.RepositoryConfigurationExtension;
@@ -30,6 +31,7 @@ class FalkorDBRepositoriesRegistrar extends AbstractRepositoryConfigurationSourc
 		return new FalkorDBRepositoryConfigurationExtension();
 	}
 
+	@Configuration(proxyBeanMethods = false)
 	@EnableFalkorDBRepositories
 	private static final class EnableFalkorDBRepositoriesConfiguration {
 	}

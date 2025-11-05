@@ -19,7 +19,8 @@ public class FalkorDBHealthContributorAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean(name = "falkorDBHealthIndicator")
-	public FalkorDBHealthIndicator falkorDBHealthIndicator(FalkorDBClient falkorDBClient) {
-		return new FalkorDBHealthIndicator(falkorDBClient);
+	public FalkorDBHealthIndicator falkorDBHealthIndicator(FalkorDBClient falkorDBClient,
+			FalkorDBProperties properties) {
+		return new FalkorDBHealthIndicator(falkorDBClient, properties);
 	}
 }

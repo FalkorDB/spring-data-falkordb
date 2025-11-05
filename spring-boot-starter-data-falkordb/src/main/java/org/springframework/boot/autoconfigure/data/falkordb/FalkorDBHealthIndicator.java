@@ -6,6 +6,7 @@ import org.springframework.data.falkordb.core.FalkorDBClient;
 
 /**
  * Health indicator for FalkorDB.
+ * Performs a connectivity check and reports database details.
  *
  * @author Shahar Biron
  * @since 1.0
@@ -13,24 +14,28 @@ import org.springframework.data.falkordb.core.FalkorDBClient;
 public class FalkorDBHealthIndicator implements HealthIndicator {
 
 	private final FalkorDBClient falkorDBClient;
+	private final String databaseName;
 
-	public FalkorDBHealthIndicator(FalkorDBClient falkorDBClient) {
+	public FalkorDBHealthIndicator(FalkorDBClient falkorDBClient, FalkorDBProperties properties) {
 		this.falkorDBClient = falkorDBClient;
+		this.databaseName = properties.getDatabase();
 	}
 
 	@Override
 	public Health health() {
 		try {
 			// Execute a simple query to check connectivity
-			falkorDBClient.query("RETURN 1", java.util.Collections.emptyMap(), result -> {
-				for (FalkorDBClient.Record record : result.records()) {
+			Object result = falkorDBClient.query("RETURN 1", java.util.Collections.emptyMap(), queryResult -> {
+				for (FalkorDBClient.Record record : queryResult.records()) {
 					return record.get("1");
 				}
 				return null;
 			});
 			
 			return Health.up()
-				.withDetail("database", "connected")
+				.withDetail("database", databaseName)
+				.withDetail("status", "connected")
+				.withDetail("validationQuery", "RETURN 1")
 				.build();
 		}
 		catch (Exception ex) {
