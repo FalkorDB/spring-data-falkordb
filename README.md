@@ -1,7 +1,7 @@
 # Spring Data FalkorDB
 
 [![Build & Test](https://github.com/FalkorDB/spring-data-falkordb/actions/workflows/build.yml/badge.svg)](https://github.com/FalkorDB/spring-data-falkordb/actions/workflows/build.yml)
-[![Maven Central](https://img.shields.io/maven-central/v/org.springframework.data/spring-data-falkordb.svg)](https://search.maven.org/artifact/org.springframework.data/spring-data-falkordb)
+[![Maven Central](https://img.shields.io/maven-central/v/com.falkordb/spring-data-falkordb.svg)](https://central.sonatype.com/artifact/com.falkordb/spring-data-falkordb)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Java Version](https://img.shields.io/badge/Java-17+-brightgreen.svg)](https://openjdk.java.net/projects/jdk/17/)
 [![FalkorDB](https://img.shields.io/badge/FalkorDB-Compatible-red.svg)](https://falkordb.com)
@@ -787,6 +787,12 @@ To verify everything is working correctly:
 - ✅ Graph relationship creation via raw Cypher
 - ✅ Query result mapping and conversion
 - ✅ Complex analytics and traversal queries
+- ✅ **Spring Boot Starter** with auto-configuration
+  - ✅ Property-based configuration
+  - ✅ Auto-configured beans (Driver, Client, Template, MappingContext)
+  - ✅ Repository auto-enablement
+  - ✅ Health indicator integration
+  - ✅ Configuration metadata for IDE support
 
 ### 🚧 **In Progress**  
 - 🔄 `@Relationship` annotation automatic relationship persistence
@@ -794,7 +800,6 @@ To verify everything is working correctly:
 - 🔄 Full transaction support integration
 
 ### 📋 **Planned**
-- 🎯 Spring Boot auto-configuration starter
 - 🎯 Reactive programming support (WebFlux)
 - 🎯 Query by Example functionality
 - 🎯 Auditing support (`@CreatedDate`, `@LastModifiedDate`)

@@ -3,8 +3,10 @@ package org.springframework.boot.autoconfigure.data.falkordb;
 import com.falkordb.Driver;
 import com.falkordb.impl.api.DriverImpl;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.falkordb.core.DefaultFalkorDBClient;
@@ -27,9 +29,9 @@ import org.springframework.data.mapping.model.EntityInstantiators;
 public class FalkorDBAutoConfiguration {
 
 	/**
-	 * Creates a FalkorDB client bean.
+	 * Creates a FalkorDB driver bean.
 	 * @param properties the FalkorDB properties
-	 * @return configured FalkorDB client
+	 * @return configured FalkorDB driver
 	 */
 	@Bean
 	@ConditionalOnMissingBean
@@ -59,17 +61,18 @@ public class FalkorDBAutoConfiguration {
 		return new DriverImpl(host, port);
 	}
 
+	/**
+	 * Creates a FalkorDB client bean.
+	 * Requires spring.data.falkordb.database to be configured.
+	 * @param driver the FalkorDB driver
+	 * @param properties the FalkorDB properties
+	 * @return configured FalkorDB client
+	 */
 	@Bean
 	@ConditionalOnMissingBean
+	@ConditionalOnProperty(prefix = "spring.data.falkordb", name = "database")
 	public FalkorDBClient falkorDBClient(Driver driver, FalkorDBProperties properties) {
-		String database = properties.getDatabase();
-		
-		if (database == null || database.isEmpty()) {
-			throw new IllegalStateException(
-				"spring.data.falkordb.database must be configured");
-		}
-
-		return new DefaultFalkorDBClient(driver, database);
+		return new DefaultFalkorDBClient(driver, properties.getDatabase());
 	}
 
 	/**
@@ -84,12 +87,14 @@ public class FalkorDBAutoConfiguration {
 
 	/**
 	 * Creates a FalkorDB template bean.
+	 * Only created if FalkorDBClient is available.
 	 * @param client the FalkorDB client
 	 * @param mappingContext the mapping context
 	 * @return FalkorDB template
 	 */
 	@Bean
 	@ConditionalOnMissingBean
+	@ConditionalOnBean(FalkorDBClient.class)
 	public FalkorDBTemplate falkorDBTemplate(FalkorDBClient client,
 			FalkorDBMappingContext mappingContext) {
 		DefaultFalkorDBEntityConverter converter = new DefaultFalkorDBEntityConverter(

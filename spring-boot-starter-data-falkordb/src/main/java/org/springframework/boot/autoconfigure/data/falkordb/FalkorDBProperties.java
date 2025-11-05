@@ -1,6 +1,14 @@
 package org.springframework.boot.autoconfigure.data.falkordb;
 
+import java.time.Duration;
+
+import jakarta.validation.constraints.NotBlank;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.convert.DurationUnit;
+import org.springframework.validation.annotation.Validated;
+
+import java.time.temporal.ChronoUnit;
 
 /**
  * Configuration properties for FalkorDB.
@@ -9,6 +17,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @since 1.0
  */
 @ConfigurationProperties(prefix = "spring.data.falkordb")
+@Validated
 public class FalkorDBProperties {
 
 	/**
@@ -17,19 +26,22 @@ public class FalkorDBProperties {
 	private String uri = "falkordb://localhost:6379";
 
 	/**
-	 * FalkorDB database name.
+	 * FalkorDB database name (required).
 	 */
+	@NotBlank(message = "spring.data.falkordb.database must be configured")
 	private String database;
 
 	/**
-	 * Connection timeout in milliseconds.
+	 * Connection timeout. Default is 2 seconds.
 	 */
-	private int connectionTimeout = 2000;
+	@DurationUnit(ChronoUnit.MILLIS)
+	private Duration connectionTimeout = Duration.ofSeconds(2);
 
 	/**
-	 * Socket timeout in milliseconds.
+	 * Socket timeout. Default is 2 seconds.
 	 */
-	private int socketTimeout = 2000;
+	@DurationUnit(ChronoUnit.MILLIS)
+	private Duration socketTimeout = Duration.ofSeconds(2);
 
 	/**
 	 * Username for authentication (if required).
@@ -57,19 +69,19 @@ public class FalkorDBProperties {
 		this.database = database;
 	}
 
-	public int getConnectionTimeout() {
+	public Duration getConnectionTimeout() {
 		return connectionTimeout;
 	}
 
-	public void setConnectionTimeout(int connectionTimeout) {
+	public void setConnectionTimeout(Duration connectionTimeout) {
 		this.connectionTimeout = connectionTimeout;
 	}
 
-	public int getSocketTimeout() {
+	public Duration getSocketTimeout() {
 		return socketTimeout;
 	}
 
-	public void setSocketTimeout(int socketTimeout) {
+	public void setSocketTimeout(Duration socketTimeout) {
 		this.socketTimeout = socketTimeout;
 	}
 
