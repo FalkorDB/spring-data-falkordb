@@ -101,8 +101,6 @@ public class PersonController {
 |----------|-------------|---------|
 | `spring.data.falkordb.uri` | FalkorDB server URI (format: `falkordb://host:port` or `redis://host:port`) | `falkordb://localhost:6379` |
 | `spring.data.falkordb.database` | Database/graph name **(required)** | - |
-| `spring.data.falkordb.connection-timeout` | Connection timeout (e.g., `2s`, `500ms`) | `2s` |
-| `spring.data.falkordb.socket-timeout` | Socket timeout (e.g., `2s`, `500ms`) | `2s` |
 | `spring.data.falkordb.repositories.enabled` | Enable/disable repository auto-configuration | `true` |
 
 > **Note:** The `@EnableFalkorDBRepositories` annotation is **optional**. Repositories are automatically
