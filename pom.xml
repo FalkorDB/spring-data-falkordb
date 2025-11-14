@@ -22,7 +22,7 @@
 	<parent>
 		<groupId>org.springframework.data.build</groupId>
 		<artifactId>spring-data-parent</artifactId>
-		<version>4.0.0-RC1</version>
+		<version>3.4.0</version>
 	</parent>
 
 	<groupId>com.falkordb</groupId>
@@ -115,7 +115,7 @@
 		<skipUnitTests>${skipTests}</skipUnitTests>
 		<sortpom-maven-plugin.version>4.0.0</sortpom-maven-plugin.version>
 		<spring-javaformat.version>0.0.46</spring-javaformat.version>
-		<springdata.commons>4.0.0-RC1</springdata.commons>
+		<springdata.commons>3.4.0</springdata.commons>
 	</properties>
 
 	<dependencyManagement>
