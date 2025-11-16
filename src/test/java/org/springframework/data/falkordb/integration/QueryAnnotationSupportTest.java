@@ -23,6 +23,7 @@ package org.springframework.data.falkordb.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -60,6 +61,13 @@ class QueryAnnotationSupportTest {
 		// If the bug exists, this will fail with "query lookup strategy not defined"
 		context = new AnnotationConfigApplicationContext(TestConfig.class);
 		repository = context.getBean(TwitterUserRepository.class);
+	}
+
+	@AfterEach
+	void tearDown() {
+		if (context != null) {
+			context.close();
+		}
 	}
 
 	/**
