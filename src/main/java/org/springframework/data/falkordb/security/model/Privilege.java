@@ -10,6 +10,7 @@ import org.apiguardian.api.API;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.falkordb.core.schema.Node;
+import org.springframework.data.falkordb.core.schema.Relationship;
 
 /**
  * Privilege node representing an action on a resource.
@@ -52,6 +53,12 @@ public class Privilege {
 	private boolean grant;
 
 	private Instant createdAt = Instant.now();
+
+	/**
+	 * The role this privilege is granted to.
+	 */
+	@Relationship(type = "GRANTED_TO", direction = Relationship.Direction.OUTGOING)
+	private Role role;
 
 	public Long getId() {
 		return this.id;
@@ -115,6 +122,14 @@ public class Privilege {
 
 	public void setCreatedAt(Instant createdAt) {
 		this.createdAt = createdAt;
+	}
+
+	public Role getRole() {
+		return this.role;
+	}
+
+	public void setRole(Role role) {
+		this.role = role;
 	}
 
 }
