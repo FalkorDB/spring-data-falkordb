@@ -278,28 +278,36 @@ public class RBACManager {
 
 	public Privilege grantPrivilege(String roleName, String action, String resource) {
 		requireAdmin();
+		Role role = getRole(roleName);
+		if (role == null) {
+			throw new org.springframework.data.falkordb.security.exception.RoleException(
+					"Role '" + roleName + "' not found");
+		}
+
 		Action act = Action.valueOf(action);
 		Privilege p = new Privilege();
 		p.setAction(act);
 		p.setResource(resource);
 		p.setGrant(true);
-		Privilege saved = this.template.save(p);
-
-		linkPrivilegeToRole(roleName, saved.getId());
-		return saved;
+		p.setRole(role);
+		return this.template.save(p);
 	}
 
 	public Privilege denyPrivilege(String roleName, String action, String resource) {
 		requireAdmin();
+		Role role = getRole(roleName);
+		if (role == null) {
+			throw new org.springframework.data.falkordb.security.exception.RoleException(
+					"Role '" + roleName + "' not found");
+		}
+
 		Action act = Action.valueOf(action);
 		Privilege p = new Privilege();
 		p.setAction(act);
 		p.setResource(resource);
 		p.setGrant(false);
-		Privilege saved = this.template.save(p);
-
-		linkPrivilegeToRole(roleName, saved.getId());
-		return saved;
+		p.setRole(role);
+		return this.template.save(p);
 	}
 
 	public Privilege grantPrivilege(String roleName, Action action, ResourceType resourceType, String resourceLabel,
@@ -309,6 +317,12 @@ public class RBACManager {
 		Assert.notNull(resourceType, "resourceType must not be null");
 		Assert.hasText(resourceLabel, "resourceLabel must not be empty");
 
+		Role role = getRole(roleName);
+		if (role == null) {
+			throw new org.springframework.data.falkordb.security.exception.RoleException(
+					"Role '" + roleName + "' not found");
+		}
+
 		Privilege p = new Privilege();
 		p.setAction(action);
 		p.setGrant(true);
@@ -316,10 +330,9 @@ public class RBACManager {
 		p.setResourceLabel(resourceLabel);
 		p.setResourceProperty(resourceProperty);
 		p.setResource(PrivilegeResource.toResourceString(resourceType, resourceLabel, resourceProperty));
+		p.setRole(role);
 
-		Privilege saved = this.template.save(p);
-		linkPrivilegeToRole(roleName, saved.getId());
-		return saved;
+		return this.template.save(p);
 	}
 
 	public Privilege denyPrivilege(String roleName, Action action, ResourceType resourceType, String resourceLabel,
@@ -329,6 +342,12 @@ public class RBACManager {
 		Assert.notNull(resourceType, "resourceType must not be null");
 		Assert.hasText(resourceLabel, "resourceLabel must not be empty");
 
+		Role role = getRole(roleName);
+		if (role == null) {
+			throw new org.springframework.data.falkordb.security.exception.RoleException(
+					"Role '" + roleName + "' not found");
+		}
+
 		Privilege p = new Privilege();
 		p.setAction(action);
 		p.setGrant(false);
@@ -336,10 +355,9 @@ public class RBACManager {
 		p.setResourceLabel(resourceLabel);
 		p.setResourceProperty(resourceProperty);
 		p.setResource(PrivilegeResource.toResourceString(resourceType, resourceLabel, resourceProperty));
+		p.setRole(role);
 
-		Privilege saved = this.template.save(p);
-		linkPrivilegeToRole(roleName, saved.getId());
-		return saved;
+		return this.template.save(p);
 	}
 
 	public void revokePrivilege(Long privilegeId) {
