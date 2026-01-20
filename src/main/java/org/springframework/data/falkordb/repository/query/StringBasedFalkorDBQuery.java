@@ -213,17 +213,61 @@ public class StringBasedFalkorDBQuery implements RepositoryQuery {
 		// Add named parameters from @Param annotations
 		java.lang.reflect.Parameter[] methodParameters = queryMethod.getMethod().getParameters();
 		for (int i = 0; i < methodParameters.length; i++) {
+			Object paramValue = parameters[i];
+			
+			// Convert enum parameters to their string representation
+			paramValue = convertEnumParameter(paramValue);
+			
 			Param paramAnnotation = AnnotationUtils.findAnnotation(methodParameters[i], Param.class);
 			if (paramAnnotation != null && StringUtils.hasText(paramAnnotation.value())) {
-				parameterMap.put(paramAnnotation.value(), parameters[i]);
+				parameterMap.put(paramAnnotation.value(), paramValue);
 			}
 			else {
 				// Fallback to indexed parameters only if no @Param annotation
-				parameterMap.put(String.valueOf(i), parameters[i]);
+				parameterMap.put(String.valueOf(i), paramValue);
 			}
 		}
 
 		return parameterMap;
+	}
+	
+	/**
+	 * Converts enum parameters to their string representation.
+	 * Handles single enum values, collections of enums, and arrays of enums.
+	 * @param paramValue the parameter value
+	 * @return the converted parameter value
+	 */
+	private Object convertEnumParameter(Object paramValue) {
+		if (paramValue == null) {
+			return null;
+		}
+		
+		// Single enum value
+		if (paramValue instanceof Enum<?>) {
+			return ((Enum<?>) paramValue).name();
+		}
+		
+		// Collection of enums
+		if (paramValue instanceof java.util.Collection) {
+			java.util.Collection<?> collection = (java.util.Collection<?>) paramValue;
+			if (!collection.isEmpty() && collection.iterator().next() instanceof Enum) {
+				return collection.stream()
+					.map(e -> ((Enum<?>) e).name())
+					.collect(java.util.stream.Collectors.toList());
+			}
+		}
+		
+		// Array of enums
+		if (paramValue.getClass().isArray() && paramValue.getClass().getComponentType().isEnum()) {
+			Enum<?>[] enumArray = (Enum<?>[]) paramValue;
+			List<String> stringList = new ArrayList<>();
+			for (Enum<?> e : enumArray) {
+				stringList.add(e.name());
+			}
+			return stringList;
+		}
+		
+		return paramValue;
 	}
 
 }

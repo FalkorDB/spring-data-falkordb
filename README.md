@@ -404,6 +404,106 @@ private Company company;
 private List<Person> employees;
 ```
 
+## ✨ Enum Support
+
+Spring Data FalkorDB provides **automatic bidirectional conversion** for Java enum types, offering full compatibility with Spring Data Neo4j's enum handling.
+
+### How It Works
+
+**Writing (Enum → String):** When saving an entity to FalkorDB, enum values are automatically converted to their string representation using `enum.name()`:
+```java
+JobType.FULL_TIME → stored as "FULL_TIME"
+```
+
+**Reading (String → Enum):** When reading from FalkorDB, stored strings are automatically converted back to enum instances using `Enum.valueOf()`:
+```java
+"FULL_TIME" from database → JobType.FULL_TIME
+```
+
+### Entity Definition
+
+Simply use enum types directly in your entities - no special annotations required:
+
+```java
+public enum JobType {
+    FULL_TIME, PART_TIME, CONTRACT, INTERN, FREELANCE
+}
+
+public enum EmploymentStatus {
+    ACTIVE, ON_LEAVE, TERMINATED, RETIRED
+}
+
+@Node("User")
+public class User {
+    @Id @GeneratedValue
+    private Long id;
+    
+    private String name;
+    
+    @NotNull
+    private JobType jobType;  // Java uses enum type
+    
+    private EmploymentStatus status;
+}
+```
+
+### Repository Queries with Enums
+
+Enum parameters work seamlessly in both derived queries and custom `@Query` methods:
+
+```java
+public interface UserRepository extends FalkorDBRepository<User, Long> {
+    // Derived query methods
+    List<User> findByJobType(JobType jobType);
+    List<User> findByJobTypeAndStatus(JobType jobType, EmploymentStatus status);
+    List<User> findByJobTypeIn(Collection<JobType> jobTypes);
+    long countByJobType(JobType jobType);
+    boolean existsByStatus(EmploymentStatus status);
+    
+    // Custom @Query methods
+    @Query("MATCH (u:User) WHERE u.jobType = $type RETURN u")
+    List<User> findByJobTypeCustom(@Param("type") JobType jobType);
+    
+    @Query("MATCH (u:User) WHERE u.jobType IN $types RETURN u")
+    List<User> findByMultipleTypes(@Param("types") List<JobType> types);
+}
+```
+
+### Usage Example
+
+```java
+@Service
+public class UserService {
+    @Autowired
+    private UserRepository repository;
+    
+    public void example() {
+        // Create and save with enums
+        User user = new User();
+        user.setName("John Doe");
+        user.setJobType(JobType.FULL_TIME);  // Type-safe enum
+        user.setStatus(EmploymentStatus.ACTIVE);
+        repository.save(user);
+        
+        // Query with enum parameters
+        List<User> fullTime = repository.findByJobType(JobType.FULL_TIME);
+        List<User> employees = repository.findByJobTypeIn(
+            Arrays.asList(JobType.FULL_TIME, JobType.PART_TIME)
+        );
+    }
+}
+```
+
+### Best Practices
+
+- ✅ **Use enums** for fixed sets of values (statuses, types, categories)
+- ✅ **Type safety**: Full compile-time checking and IDE autocomplete
+- ✅ **Neo4j compatible**: Works identically to Spring Data Neo4j
+- ⚠️ **Avoid `@Interned` with enums**: Enums are already stored efficiently
+- 💡 **Use `@Interned` for enum-like strings**: When enums aren't suitable (dynamic values, legacy data)
+
+For complete examples, see `Employee` entity and `EnumUsageExample` in the test suite.
+
 ## 🔍 Repository Query Methods
 
 Spring Data FalkorDB supports two types of queries:
