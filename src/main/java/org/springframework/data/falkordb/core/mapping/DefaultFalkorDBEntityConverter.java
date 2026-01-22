@@ -129,6 +129,7 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		EntityInstantiator instantiator = this.entityInstantiators.getInstantiatorFor(entity);
 		R instance = instantiator.createInstance(entity, parameterProvider);
 
+
 		// Set properties on the created instance
 		PersistentPropertyAccessor<R> accessor = entity.getPropertyAccessor(instance);
 
@@ -139,8 +140,13 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			}
 
 			if (property.isRelationship()) {
-				// Handle relationship loading
-				Object relationshipValue = loadRelationship(record, property, entity);
+				// Try to hydrate from record first
+				Object relationshipValue = tryHydrateRelationshipFromRecord(record, property);
+				if (relationshipValue == null) {
+					// Fallback to lazy loading
+					relationshipValue = loadRelationship(record, property, entity);
+				}
+
 				if (relationshipValue != null) {
 					accessor.setProperty(property, relationshipValue);
 				}
@@ -157,6 +163,43 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		});
 
 		return instance;
+	}
+
+	private Object tryHydrateRelationshipFromRecord(FalkorDBClient.Record record, FalkorDBPersistentProperty property) {
+		String propertyName = property.getName();
+		Object value = safeRecordGet(record, propertyName);
+
+		if (value == null) {
+			// Try with "s" suffix for collections
+			value = safeRecordGet(record, propertyName + "s");
+		}
+
+		if (value == null) {
+			return null;
+		}
+
+		Class<?> targetType = getRelationshipTargetType(property);
+		if (targetType == null) {
+			return null;
+		}
+
+		if (isCollectionProperty(property)) {
+			if (value instanceof Collection) {
+				List<Object> relatedEntities = new ArrayList<>();
+				for (Object item : (Collection<?>) value) {
+					if (item instanceof FalkorDBClient.Record) {
+						relatedEntities.add(read(targetType, (FalkorDBClient.Record) item));
+					}
+				}
+				return relatedEntities;
+			}
+		} else {
+			if (value instanceof FalkorDBClient.Record) {
+				return read(targetType, (FalkorDBClient.Record) value);
+			}
+		}
+
+		return null;
 	}
 
 	/**
