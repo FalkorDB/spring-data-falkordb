@@ -27,7 +27,7 @@
 
 	<groupId>com.falkordb</groupId>
 	<artifactId>spring-data-falkordb</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.0</version>
 
 	<name>Spring Data FalkorDB</name>
 	<description>Spring Data integration for FalkorDB - Object-Graph-Mapping for the world's fastest graph database.</description>
