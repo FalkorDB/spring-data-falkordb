@@ -188,7 +188,15 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 				List<Object> relatedEntities = new ArrayList<>();
 				for (Object item : (Collection<?>) value) {
 					if (item instanceof FalkorDBClient.Record) {
+						// Collection of records (e.g. when query returns nested rows)
 						relatedEntities.add(read(targetType, (FalkorDBClient.Record) item));
+					}
+					else if (isNodeLike(item)) {
+						// Collection of raw node objects (e.g. collect(s) where s is a node)
+						Object entity = readFromNodeObject(item, targetType);
+						if (entity != null) {
+							relatedEntities.add(entity);
+						}
 					}
 				}
 				return relatedEntities;

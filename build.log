@@ -1,0 +1,299 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------< com.falkordb:spring-data-falkordb >------------------
+[INFO] Building Spring Data FalkorDB 1.0.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ spring-data-falkordb ---
+[INFO] Deleting /Users/shaharbiron/Documents/GitHub/spring-data-falkordb/target
+[INFO] 
+[INFO] --- flatten:1.7.0:clean (flatten.clean) @ spring-data-falkordb ---
+[INFO] Deleting /Users/shaharbiron/Documents/GitHub/spring-data-falkordb/.flattened-pom.xml
+[INFO] 
+[INFO] --- sortpom:4.0.0:verify (default) @ spring-data-falkordb ---
+[INFO] Verifying file /Users/shaharbiron/Documents/GitHub/spring-data-falkordb/pom.xml
+[INFO] 
+[INFO] --- enforcer:3.5.0:enforce (enforce-maven-version) @ spring-data-falkordb ---
+[INFO] Rule 0: org.apache.maven.enforcer.rules.version.RequireMavenVersion passed
+[INFO] Rule 1: org.apache.maven.enforcer.rules.version.RequireJavaVersion passed
+[INFO] 
+[INFO] --- enforcer:3.5.0:enforce (enforce) @ spring-data-falkordb ---
+[INFO] Rule 0: org.apache.maven.enforcer.rules.version.RequireMavenVersion passed
+[INFO] 
+[INFO] --- jacoco:0.8.13:prepare-agent (prepare-agent) @ spring-data-falkordb ---
+[INFO] argLine set to -javaagent:/Users/shaharbiron/.m2/repository/org/jacoco/org.jacoco.agent/0.8.13/org.jacoco.agent-0.8.13-runtime.jar=destfile=/Users/shaharbiron/Documents/GitHub/spring-data-falkordb/target/jacoco.exec,append=true
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spring-data-falkordb ---
+[INFO] Copying 6 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.0:flatten (flatten) @ spring-data-falkordb ---
+[INFO] Generating flattened POM of project com.falkordb:spring-data-falkordb:jar:1.0.0-SNAPSHOT...
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default) @ spring-data-falkordb ---
+[INFO] Copying 6 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- kotlin:1.9.25:compile (compile) @ spring-data-falkordb ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (java-compile) @ spring-data-falkordb ---
+[WARNING]  Parameter 'forceJavacCompilerUse' (user property 'maven.compiler.forceJavacCompilerUse') is deprecated: Use forceLegacyJavacApi instead
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 77 source files with javac [debug parameters release 17] to target/classes
+[INFO] 
+[INFO] --- build-helper:3.6.0:add-test-source (add-jmh-source) @ spring-data-falkordb ---
+[INFO] Test Source directory: /Users/shaharbiron/Documents/GitHub/spring-data-falkordb/src/jmh/java added.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spring-data-falkordb ---
+[INFO] Copying 6 resources from src/test/resources to target/test-classes
+[INFO] 
+[INFO] --- kotlin:1.9.25:test-compile (test-compile) @ spring-data-falkordb ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- kotlin:1.9.25:test-compile (jmh-compile) @ spring-data-falkordb ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (java-test-compile) @ spring-data-falkordb ---
+[WARNING]  Parameter 'forceJavacCompilerUse' (user property 'maven.compiler.forceJavacCompilerUse') is deprecated: Use forceLegacyJavacApi instead
+[INFO] Loaded from the build cache, saving 0.501s
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ spring-data-falkordb ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running org.springframework.data.falkordb.core.mapping.IdMappingFromNodePropertiesTest
+[main] 2026-01-22 13:46:13,881  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.153 s -- in org.springframework.data.falkordb.core.mapping.IdMappingFromNodePropertiesTest
+[INFO] Running org.springframework.data.falkordb.core.mapping.InternedAnnotationTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s -- in org.springframework.data.falkordb.core.mapping.InternedAnnotationTest
+[INFO] Running org.springframework.data.falkordb.security.rls.RowLevelSecurityExpressionTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in org.springframework.data.falkordb.security.rls.RowLevelSecurityExpressionTest
+[INFO] Running org.springframework.data.falkordb.security.context.FalkorSecurityContextTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in org.springframework.data.falkordb.security.context.FalkorSecurityContextTest
+[INFO] Running org.springframework.data.falkordb.security.context.FalkorSecurityContextHolderTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in org.springframework.data.falkordb.security.context.FalkorSecurityContextHolderTest
+[INFO] Running org.springframework.data.falkordb.security.policy.ResourcePatternTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in org.springframework.data.falkordb.security.policy.ResourcePatternTest
+[INFO] Running org.springframework.data.falkordb.integration.RbacSecurityIntegrationTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.336 s -- in org.springframework.data.falkordb.integration.RbacSecurityIntegrationTest
+[INFO] Running org.springframework.data.falkordb.integration.RowLevelSecurityIntegrationTest
+[main] 2026-01-22 13:46:14,359  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,359  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,361  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,361  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,364  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,364  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.083 s -- in org.springframework.data.falkordb.integration.RowLevelSecurityIntegrationTest
+[INFO] Running org.springframework.data.falkordb.integration.EnumMappingIntegrationTest
+[main] 2026-01-22 13:46:14,404  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,404  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,430  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,430  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,432  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,432  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,434  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,434  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,440  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,440  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,460  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,460  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,462  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,462  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,465  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,465  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,490  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,490  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,492  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,492  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,493  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,493  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,495  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: e
+[main] 2026-01-22 13:46:14,496  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: e
+[main] 2026-01-22 13:46:14,521  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,521  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,523  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,523  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,526  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,526  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,528  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,528  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,529  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,530  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,547  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,547  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,550  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,550  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,552  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: e
+[main] 2026-01-22 13:46:14,570  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,570  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,573  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,573  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,575  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,575  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,578  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,596  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,596  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,597  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,598  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,599  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,599  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,615  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,615  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,616  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,616  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,617  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,617  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,618  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,619  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,620  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,620  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,621  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,623  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,623  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,624  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,625  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,642  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,642  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,643  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,643  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,645  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,661  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,661  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,663  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,680  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,680  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,682  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,682  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,683  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,683  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,685  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: e
+[main] 2026-01-22 13:46:14,699  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,699  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.333 s -- in org.springframework.data.falkordb.integration.EnumMappingIntegrationTest
+[INFO] Running org.springframework.data.falkordb.integration.FalkorDBTwitterIntegrationTests
+[main] 2026-01-22 13:46:14,707  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,708  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,710  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,710  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,711  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,711  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,717  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: u
+[main] 2026-01-22 13:46:14,717  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: u
+[main] 2026-01-22 13:46:14,718  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: u
+[main] 2026-01-22 13:46:14,719  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: u
+[main] 2026-01-22 13:46:14,719  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: u
+[main] 2026-01-22 13:46:14,725  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,725  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,730  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: u
+[main] 2026-01-22 13:46:14,735  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,735  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,736  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,741  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,742  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,743  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,743  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,744  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,744  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,747  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: followed
+[main] 2026-01-22 13:46:14,748  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: followed
+[main] 2026-01-22 13:46:14,749  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: follower
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.048 s -- in org.springframework.data.falkordb.integration.FalkorDBTwitterIntegrationTests
+[INFO] Running org.springframework.data.falkordb.integration.AuditLoggerIntegrationTest
+[main] 2026-01-22 13:46:14,759  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,759  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,760  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,760  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,762  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,762  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,763  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,764  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,765  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,765  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s -- in org.springframework.data.falkordb.integration.AuditLoggerIntegrationTest
+[INFO] Running org.springframework.data.falkordb.integration.RlsSecurityIntegrationTest
+[main] 2026-01-22 13:46:14,781  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,782  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,783  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,783  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,784  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,784  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,787  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,787  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,789  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,790  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,791  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,791  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.027 s -- in org.springframework.data.falkordb.integration.RlsSecurityIntegrationTest
+[INFO] Running org.springframework.data.falkordb.integration.ImpersonationIntegrationTest
+[main] 2026-01-22 13:46:14,802  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,802  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,804  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,805  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,807  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,807  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,810  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,810  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[main] 2026-01-22 13:46:14,812  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: n
+[main] 2026-01-22 13:46:14,812  INFO e.mapping.DefaultFalkorDBEntityConverter: 134 - Record key: nodeId
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.020 s -- in org.springframework.data.falkordb.integration.ImpersonationIntegrationTest
+[INFO] Running org.springframework.data.falkordb.examples.AnnotationUsageTests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in org.springframework.data.falkordb.examples.AnnotationUsageTests
+[INFO] Running org.springframework.data.falkordb.examples.RelationshipMappingTests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in org.springframework.data.falkordb.examples.RelationshipMappingTests
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 52, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- build-helper:3.6.0:add-source (add-kotlin-source) @ spring-data-falkordb ---
+[INFO] Source directory: /Users/shaharbiron/Documents/GitHub/spring-data-falkordb/src/main/kotlin added.
+[INFO] 
+[INFO] --- jar:3.4.2:jar (default-jar) @ spring-data-falkordb ---
+[INFO] Building jar: /Users/shaharbiron/Documents/GitHub/spring-data-falkordb/target/spring-data-falkordb-1.0.0-SNAPSHOT.jar
+[INFO] 
+[INFO] >>> source:3.3.1:jar (attach-sources) > generate-sources @ spring-data-falkordb >>>
+[INFO] 
+[INFO] --- sortpom:4.0.0:verify (default) @ spring-data-falkordb ---
+[INFO] Verifying file /Users/shaharbiron/Documents/GitHub/spring-data-falkordb/pom.xml
+[INFO] 
+[INFO] --- enforcer:3.5.0:enforce (enforce-maven-version) @ spring-data-falkordb ---
+[INFO] 
+[INFO] --- enforcer:3.5.0:enforce (enforce) @ spring-data-falkordb ---
+[INFO] 
+[INFO] --- jacoco:0.8.13:prepare-agent (prepare-agent) @ spring-data-falkordb ---
+[INFO] argLine set to -javaagent:/Users/shaharbiron/.m2/repository/org/jacoco/org.jacoco.agent/0.8.13/org.jacoco.agent-0.8.13-runtime.jar=destfile=/Users/shaharbiron/Documents/GitHub/spring-data-falkordb/target/jacoco.exec,append=true
+[INFO] 
+[INFO] <<< source:3.3.1:jar (attach-sources) < generate-sources @ spring-data-falkordb <<<
+[INFO] 
+[INFO] 
+[INFO] --- source:3.3.1:jar (attach-sources) @ spring-data-falkordb ---
+[INFO] Building jar: /Users/shaharbiron/Documents/GitHub/spring-data-falkordb/target/spring-data-falkordb-1.0.0-SNAPSHOT-sources.jar
+[INFO] 
+[INFO] --- jacoco:0.8.13:prepare-agent-integration (prepare-agent-integration) @ spring-data-falkordb ---
+[INFO] argLine set to -javaagent:/Users/shaharbiron/.m2/repository/org/jacoco/org.jacoco.agent/0.8.13/org.jacoco.agent-0.8.13-runtime.jar=destfile=/Users/shaharbiron/Documents/GitHub/spring-data-falkordb/target/jacoco.exec,append=true
+[INFO] 
+[INFO] --- failsafe:3.5.2:integration-test (default) @ spring-data-falkordb ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] --- failsafe:3.5.2:verify (default) @ spring-data-falkordb ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- jacoco:0.8.13:report (report) @ spring-data-falkordb ---
+[INFO] Skipping JaCoCo execution due to missing execution data file.
+[INFO] 
+[INFO] --- install:3.1.4:install (default-install) @ spring-data-falkordb ---
+[INFO] Installing /Users/shaharbiron/Documents/GitHub/spring-data-falkordb/.flattened-pom.xml to /Users/shaharbiron/.m2/repository/com/falkordb/spring-data-falkordb/1.0.0-SNAPSHOT/spring-data-falkordb-1.0.0-SNAPSHOT.pom
+[INFO] Installing /Users/shaharbiron/Documents/GitHub/spring-data-falkordb/target/spring-data-falkordb-1.0.0-SNAPSHOT.jar to /Users/shaharbiron/.m2/repository/com/falkordb/spring-data-falkordb/1.0.0-SNAPSHOT/spring-data-falkordb-1.0.0-SNAPSHOT.jar
+[INFO] Installing /Users/shaharbiron/Documents/GitHub/spring-data-falkordb/target/spring-data-falkordb-1.0.0-SNAPSHOT-sources.jar to /Users/shaharbiron/.m2/repository/com/falkordb/spring-data-falkordb/1.0.0-SNAPSHOT/spring-data-falkordb-1.0.0-SNAPSHOT-sources.jar
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  4.507 s
+[INFO] Finished at: 2026-01-22T13:46:15+02:00
+[INFO] ------------------------------------------------------------------------
+[INFO] 29 goals, 28 executed, 1 from cache
