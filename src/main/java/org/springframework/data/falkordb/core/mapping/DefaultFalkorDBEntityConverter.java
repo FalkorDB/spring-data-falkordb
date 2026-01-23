@@ -1066,23 +1066,47 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			return null;
 		}
 
+		// Strategy 1: JFalkorDB GraphEntity-style API (getEntityPropertyNames + getProperty)
 		try {
-			// Try getProperties method
+			java.lang.reflect.Method getNamesMethod = nodeObj.getClass().getMethod("getEntityPropertyNames");
+			java.lang.reflect.Method getPropertyMethod = nodeObj.getClass().getMethod("getProperty", String.class);
+			@SuppressWarnings("unchecked")
+			java.util.Set<String> names = (java.util.Set<String>) getNamesMethod.invoke(nodeObj);
+			if (names != null) {
+				Map<String, Object> converted = new HashMap<>();
+				for (String name : names) {
+					Object prop = getPropertyMethod.invoke(nodeObj, name);
+					if (prop != null) {
+						Object extractedValue = extractValueFromPropertyObject(prop);
+						converted.put(name, extractedValue);
+					}
+				}
+				if (!converted.isEmpty()) {
+					return converted;
+				}
+			}
+		}
+		catch (Exception ex) {
+			// Not a GraphEntity-style node, fall through to generic getProperties path
+		}
+
+		// Strategy 2: Generic getProperties() map-style API
+		try {
 			java.lang.reflect.Method getPropertiesMethod = nodeObj.getClass().getMethod("getProperties");
 			@SuppressWarnings("unchecked")
 			Map<String, Object> properties = (Map<String, Object>) getPropertiesMethod.invoke(nodeObj);
 			if (properties != null) {
-				// Convert property values if needed
 				Map<String, Object> converted = new HashMap<>();
 				for (Map.Entry<String, Object> entry : properties.entrySet()) {
 					Object value = entry.getValue();
-					// Extract value from Property wrapper if needed
 					if (value != null) {
 						Object extractedValue = extractValueFromPropertyObject(value);
 						converted.put(entry.getKey(), extractedValue);
 					}
 				}
-				return converted;
+				if (!converted.isEmpty()) {
+					return converted;
+				}
 			}
 		}
 		catch (Exception ex) {

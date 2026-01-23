@@ -7,7 +7,7 @@
 
     <groupId>com.falkordb</groupId>
     <artifactId>spring-boot-starter-data-falkordb</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <packaging>jar</packaging>
 
     <name>Spring Boot Starter for Spring Data FalkorDB</name>
@@ -44,7 +44,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         
         <spring-boot.version>3.5.3</spring-boot.version>
-        <spring-data-falkordb.version>1.0.1</spring-data-falkordb.version>
+        <spring-data-falkordb.version>1.0.2</spring-data-falkordb.version>
     </properties>
 
     <dependencyManagement>
