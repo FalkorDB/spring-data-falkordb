@@ -1,5 +1,7 @@
 package org.springframework.boot.autoconfigure.data.falkordb;
 
+import java.net.URI;
+
 import com.falkordb.Driver;
 import com.falkordb.impl.api.DriverImpl;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -9,9 +11,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.falkordb.core.DefaultFalkorDBClient;
 import org.springframework.data.falkordb.core.FalkorDBClient;
 import org.springframework.data.falkordb.core.FalkorDBTemplate;
+import org.springframework.data.falkordb.core.query.FalkorDBQueryRewriter;
 import org.springframework.data.falkordb.core.mapping.DefaultFalkorDBEntityConverter;
 import org.springframework.data.falkordb.core.mapping.DefaultFalkorDBMappingContext;
 import org.springframework.data.falkordb.core.mapping.FalkorDBMappingContext;
@@ -36,26 +40,50 @@ public class FalkorDBAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public Driver falkorDBDriver(FalkorDBProperties properties) {
-		String uri = properties.getUri();
-		
-		// Parse URI and create FalkorDB connection
-		// URI format: falkordb://host:port or redis://host:port
-		String host = "localhost";
-		int port = 6379;
-		
-		if (uri != null && !uri.isEmpty()) {
-			uri = uri.replace("falkordb://", "").replace("redis://", "");
-			String[] parts = uri.split(":");
-			if (parts.length > 0) {
-				host = parts[0];
+		String rawUri = properties.getUri();
+
+		// Supported formats:
+		// - falkordb://host:port
+		// - falkordb://user:pass@host:port
+		// - redis://host:port
+		// - redis://user:pass@host:port
+		// - host:port (scheme-less)
+		String normalized = (rawUri == null) ? "" : rawUri.trim();
+		if (normalized.startsWith("falkordb://")) {
+			// JFalkorDB understands redis://... URIs.
+			normalized = "redis://" + normalized.substring("falkordb://".length());
+		}
+		else if (!normalized.contains("://")) {
+			// Allow scheme-less host:port.
+			normalized = "redis://" + normalized;
+		}
+
+		URI uri;
+		try {
+			uri = URI.create(normalized);
+		}
+		catch (IllegalArgumentException ex) {
+			// Avoid leaking credentials by echoing the raw URI.
+			throw new IllegalArgumentException("Invalid FalkorDB URI configured in 'spring.data.falkordb.uri'.", ex);
+		}
+
+		String host = (uri.getHost() != null) ? uri.getHost() : "localhost";
+		int port = (uri.getPort() != -1) ? uri.getPort() : 6379;
+
+		String userInfo = uri.getUserInfo();
+		if (userInfo != null && !userInfo.isBlank()) {
+			String username;
+			String password = "";
+			int idx = userInfo.indexOf(':');
+			if (idx >= 0) {
+				username = userInfo.substring(0, idx);
+				password = userInfo.substring(idx + 1);
 			}
-			if (parts.length > 1) {
-				try {
-					port = Integer.parseInt(parts[1]);
-				} catch (NumberFormatException e) {
-					// Keep default port
-				}
+			else {
+				username = userInfo;
 			}
+
+			return new DriverImpl(host, port, username, password);
 		}
 
 		return new DriverImpl(host, port);
@@ -96,9 +124,10 @@ public class FalkorDBAutoConfiguration {
 	@ConditionalOnMissingBean
 	@ConditionalOnBean(FalkorDBClient.class)
 	public FalkorDBTemplate falkorDBTemplate(FalkorDBClient client,
-			FalkorDBMappingContext mappingContext) {
+			FalkorDBMappingContext mappingContext,
+			ObjectProvider<FalkorDBQueryRewriter> queryRewriterProvider) {
 		DefaultFalkorDBEntityConverter converter = new DefaultFalkorDBEntityConverter(
 				mappingContext, new EntityInstantiators(), client);
-		return new FalkorDBTemplate(client, mappingContext, converter);
+		return new FalkorDBTemplate(client, mappingContext, converter, queryRewriterProvider.getIfAvailable());
 	}
 }

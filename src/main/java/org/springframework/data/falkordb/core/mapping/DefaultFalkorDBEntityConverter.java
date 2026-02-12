@@ -129,6 +129,7 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		EntityInstantiator instantiator = this.entityInstantiators.getInstantiatorFor(entity);
 		R instance = instantiator.createInstance(entity, parameterProvider);
 
+
 		// Set properties on the created instance
 		PersistentPropertyAccessor<R> accessor = entity.getPropertyAccessor(instance);
 
@@ -139,8 +140,13 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			}
 
 			if (property.isRelationship()) {
-				// Handle relationship loading
-				Object relationshipValue = loadRelationship(record, property, entity);
+				// Try to hydrate from record first
+				Object relationshipValue = tryHydrateRelationshipFromRecord(record, property);
+				if (relationshipValue == null) {
+					// Fallback to lazy loading
+					relationshipValue = loadRelationship(record, property, entity);
+				}
+
 				if (relationshipValue != null) {
 					accessor.setProperty(property, relationshipValue);
 				}
@@ -157,6 +163,51 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		});
 
 		return instance;
+	}
+
+	private Object tryHydrateRelationshipFromRecord(FalkorDBClient.Record record, FalkorDBPersistentProperty property) {
+		String propertyName = property.getName();
+		Object value = safeRecordGet(record, propertyName);
+
+		if (value == null) {
+			// Try with "s" suffix for collections
+			value = safeRecordGet(record, propertyName + "s");
+		}
+
+		if (value == null) {
+			return null;
+		}
+
+		Class<?> targetType = getRelationshipTargetType(property);
+		if (targetType == null) {
+			return null;
+		}
+
+		if (isCollectionProperty(property)) {
+			if (value instanceof Collection) {
+				List<Object> relatedEntities = new ArrayList<>();
+				for (Object item : (Collection<?>) value) {
+					if (item instanceof FalkorDBClient.Record) {
+						// Collection of records (e.g. when query returns nested rows)
+						relatedEntities.add(read(targetType, (FalkorDBClient.Record) item));
+					}
+					else if (isNodeLike(item)) {
+						// Collection of raw node objects (e.g. collect(s) where s is a node)
+						Object entity = readFromNodeObject(item, targetType);
+						if (entity != null) {
+							relatedEntities.add(entity);
+						}
+					}
+				}
+				return relatedEntities;
+			}
+		} else {
+			if (value instanceof FalkorDBClient.Record) {
+				return read(targetType, (FalkorDBClient.Record) value);
+			}
+		}
+
+		return null;
 	}
 
 	/**
@@ -203,9 +254,14 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 	 */
 	private Object convertValueForFalkorDB(final Object value, final FalkorDBPersistentProperty property) {
 		if (value instanceof LocalDateTime) {
-			// Convert LocalDateTime to ISO string format that FalkorDB
-			// can handle. Using ISO_LOCAL_DATE_TIME format.
+			// Convert LocalDateTime to ISO string format that FalkorDB can handle.
 			return ((LocalDateTime) value).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+		}
+		if (value instanceof java.time.Instant) {
+			return DateTimeFormatter.ISO_INSTANT.format((java.time.Instant) value);
+		}
+		if (value instanceof Enum<?>) {
+			return ((Enum<?>) value).name();
 		}
 		
 		// Apply intern() function for low-cardinality string properties
@@ -347,12 +403,29 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		// Handle String conversions
 		if (value instanceof String) {
 			String strValue = (String) value;
+			if (targetType.isEnum()) {
+				try {
+					@SuppressWarnings({ "unchecked", "rawtypes" })
+					Object enumValue = Enum.valueOf((Class<? extends Enum>) targetType, strValue);
+					return enumValue;
+				}
+				catch (Exception ex) {
+					return null;
+				}
+			}
 			if (targetType == LocalDateTime.class) {
 				try {
 					return LocalDateTime.parse(strValue, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 				}
 				catch (Exception ex) {
-					// If parsing fails, return null
+					return null;
+				}
+			}
+			if (targetType == java.time.Instant.class) {
+				try {
+					return java.time.Instant.parse(strValue);
+				}
+				catch (Exception ex) {
 					return null;
 				}
 			}
@@ -375,15 +448,23 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		try {
 			String propertyName = property.getGraphPropertyName();
 
-			// Handle ID property specially - it comes from nodeId or
-			// internal id
+			// Handle ID property specially
 			if (property.isIdProperty()) {
-				// Try to get nodeId first (internal FalkorDB ID)
+				// 1) For user-defined IDs stored as node properties (e.g. @Id String id),
+				//    try to read the value from the node object first – same strategy as
+				//    for regular properties. This is the shape produced by repository
+				//    queries where the node is returned as "n" and the id lives inside it.
+				Object nodeIdValue = extractValueFromNodeObject(record, propertyName);
+				if (nodeIdValue != null) {
+					return nodeIdValue;
+				}
+
+				// 2) Fall back to explicit internal ID aliases when present. This keeps
+				//    support for projections that expose id(n) AS nodeId / id.
 				Object nodeId = record.get("nodeId");
 				if (nodeId != null) {
 					return nodeId;
 				}
-				// Fallback to id field
 				Object id = record.get("id");
 				if (id != null) {
 					return id;
@@ -653,6 +734,11 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		org.springframework.data.falkordb.core.schema.Node nodeAnn = persistentEntity.getType()
 				.getAnnotation(org.springframework.data.falkordb.core.schema.Node.class);
 		if (nodeAnn != null) {
+			for (String label : nodeAnn.value()) {
+				if (label != null && !label.isEmpty() && !label.equals(primaryLabel)) {
+					labels.add(label);
+				}
+			}
 			for (String label : nodeAnn.labels()) {
 				if (label != null && !label.isEmpty() && !label.equals(primaryLabel)) {
 					labels.add(label);
@@ -772,7 +858,10 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			if (!nodeAnnotation.primaryLabel().isEmpty()) {
 				return nodeAnnotation.primaryLabel();
 			}
-			else if (nodeAnnotation.labels().length > 0) {
+			if (nodeAnnotation.value().length > 0) {
+				return nodeAnnotation.value()[0];
+			}
+			if (nodeAnnotation.labels().length > 0) {
 				return nodeAnnotation.labels()[0];
 			}
 		}
@@ -977,23 +1066,47 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			return null;
 		}
 
+		// Strategy 1: JFalkorDB GraphEntity-style API (getEntityPropertyNames + getProperty)
 		try {
-			// Try getProperties method
+			java.lang.reflect.Method getNamesMethod = nodeObj.getClass().getMethod("getEntityPropertyNames");
+			java.lang.reflect.Method getPropertyMethod = nodeObj.getClass().getMethod("getProperty", String.class);
+			@SuppressWarnings("unchecked")
+			java.util.Set<String> names = (java.util.Set<String>) getNamesMethod.invoke(nodeObj);
+			if (names != null) {
+				Map<String, Object> converted = new HashMap<>();
+				for (String name : names) {
+					Object prop = getPropertyMethod.invoke(nodeObj, name);
+					if (prop != null) {
+						Object extractedValue = extractValueFromPropertyObject(prop);
+						converted.put(name, extractedValue);
+					}
+				}
+				if (!converted.isEmpty()) {
+					return converted;
+				}
+			}
+		}
+		catch (Exception ex) {
+			// Not a GraphEntity-style node, fall through to generic getProperties path
+		}
+
+		// Strategy 2: Generic getProperties() map-style API
+		try {
 			java.lang.reflect.Method getPropertiesMethod = nodeObj.getClass().getMethod("getProperties");
 			@SuppressWarnings("unchecked")
 			Map<String, Object> properties = (Map<String, Object>) getPropertiesMethod.invoke(nodeObj);
 			if (properties != null) {
-				// Convert property values if needed
 				Map<String, Object> converted = new HashMap<>();
 				for (Map.Entry<String, Object> entry : properties.entrySet()) {
 					Object value = entry.getValue();
-					// Extract value from Property wrapper if needed
 					if (value != null) {
 						Object extractedValue = extractValueFromPropertyObject(value);
 						converted.put(entry.getKey(), extractedValue);
 					}
 				}
-				return converted;
+				if (!converted.isEmpty()) {
+					return converted;
+				}
 			}
 		}
 		catch (Exception ex) {
@@ -1168,7 +1281,7 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 	 */
 	private Object extractValueFromNodeObject(FalkorDBClient.Record record, String propertyName) {
 		try {
-			Object nodeObj = record.get("n");
+			Object nodeObj = findNodeObject(record);
 			if (nodeObj == null) {
 				return null;
 			}
@@ -1184,6 +1297,60 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		}
 		catch (Exception ex) {
 			return null;
+		}
+	}
+
+	private Object findNodeObject(FalkorDBClient.Record record) {
+		if (record == null) {
+			return null;
+		}
+		// Preferred alias used by repository queries
+		Object n = safeRecordGet(record, "n");
+		if (n != null) {
+			return n;
+		}
+		// Fall back to first node-like object in the record.
+		try {
+			for (String key : record.keys()) {
+				Object v = safeRecordGet(record, key);
+				if (isNodeLike(v)) {
+					return v;
+				}
+			}
+		}
+		catch (Exception ignored) {
+			return null;
+		}
+		return null;
+	}
+
+	private Object safeRecordGet(FalkorDBClient.Record record, String key) {
+		try {
+			return record.get(key);
+		}
+		catch (Exception ex) {
+			return null;
+		}
+	}
+
+	private boolean isNodeLike(Object value) {
+		if (value == null) {
+			return false;
+		}
+		Class<?> type = value.getClass();
+		try {
+			type.getMethod("getProperty", String.class);
+			return true;
+		}
+		catch (NoSuchMethodException ignored) {
+			// ignore
+		}
+		try {
+			type.getMethod("getProperties");
+			return true;
+		}
+		catch (NoSuchMethodException ignored) {
+			return false;
 		}
 	}
 

@@ -176,31 +176,37 @@ public class DerivedCypherQueryGenerator {
 			throw new IllegalArgumentException("Parameter index " + currentParamIndex
 					+ " out of bounds for parameters array of length " + parameters.length);
 		}
+		
+		// Convert enum parameters to their string representation
+		Object paramValue = parameters[currentParamIndex];
+		if (paramValue instanceof Enum<?>) {
+			paramValue = ((Enum<?>) paramValue).name();
+		}
 
 		switch (part.getType()) {
 			case SIMPLE_PROPERTY:
 				cypher.append("n.").append(property).append(" = $").append(paramName);
-				queryParameters.put(paramName, parameters[parameterIndex.get() - 1]);
+				queryParameters.put(paramName, paramValue);
 				break;
 			case NEGATING_SIMPLE_PROPERTY:
 				cypher.append("n.").append(property).append(" <> $").append(paramName);
-				queryParameters.put(paramName, parameters[parameterIndex.get() - 1]);
+				queryParameters.put(paramName, paramValue);
 				break;
 			case GREATER_THAN:
 				cypher.append("n.").append(property).append(" > $").append(paramName);
-				queryParameters.put(paramName, parameters[parameterIndex.get() - 1]);
+				queryParameters.put(paramName, paramValue);
 				break;
 			case GREATER_THAN_EQUAL:
 				cypher.append("n.").append(property).append(" >= $").append(paramName);
-				queryParameters.put(paramName, parameters[parameterIndex.get() - 1]);
+				queryParameters.put(paramName, paramValue);
 				break;
 			case LESS_THAN:
 				cypher.append("n.").append(property).append(" < $").append(paramName);
-				queryParameters.put(paramName, parameters[parameterIndex.get() - 1]);
+				queryParameters.put(paramName, paramValue);
 				break;
 			case LESS_THAN_EQUAL:
 				cypher.append("n.").append(property).append(" <= $").append(paramName);
-				queryParameters.put(paramName, parameters[parameterIndex.get() - 1]);
+				queryParameters.put(paramName, paramValue);
 				break;
 			case LIKE:
 				cypher.append("n.").append(property).append(" =~ $").append(paramName);
@@ -253,11 +259,31 @@ public class DerivedCypherQueryGenerator {
 				break;
 			case IN:
 				cypher.append("n.").append(property).append(" IN $").append(paramName);
-				queryParameters.put(paramName, parameters[parameterIndex.get() - 1]);
+				// Convert collection of enums to collection of strings
+				Object inValue = paramValue;
+				if (inValue instanceof java.util.Collection) {
+					java.util.Collection<?> collection = (java.util.Collection<?>) inValue;
+					if (!collection.isEmpty() && collection.iterator().next() instanceof Enum) {
+						inValue = collection.stream()
+							.map(e -> ((Enum<?>) e).name())
+							.collect(java.util.stream.Collectors.toList());
+					}
+				}
+				queryParameters.put(paramName, inValue);
 				break;
 			case NOT_IN:
 				cypher.append("NOT (n.").append(property).append(" IN $").append(paramName).append(")");
-				queryParameters.put(paramName, parameters[parameterIndex.get() - 1]);
+				// Convert collection of enums to collection of strings
+				Object notInValue = paramValue;
+				if (notInValue instanceof java.util.Collection) {
+					java.util.Collection<?> collection = (java.util.Collection<?>) notInValue;
+					if (!collection.isEmpty() && collection.iterator().next() instanceof Enum) {
+						notInValue = collection.stream()
+							.map(e -> ((Enum<?>) e).name())
+							.collect(java.util.stream.Collectors.toList());
+					}
+				}
+				queryParameters.put(paramName, notInValue);
 				break;
 			default:
 				throw new IllegalArgumentException(
