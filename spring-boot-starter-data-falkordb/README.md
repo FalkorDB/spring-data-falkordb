@@ -39,6 +39,24 @@ spring:
       database: my-graph-db
 ```
 
+#### Authenticated connection
+
+If your FalkorDB endpoint requires authentication (ACL username + password), include credentials in the URI:
+
+```properties
+spring.data.falkordb.uri=falkordb://username:password@localhost:6379
+spring.data.falkordb.database=my-graph-db
+```
+
+You can also use the `redis://` scheme:
+
+```properties
+spring.data.falkordb.uri=redis://username:password@localhost:6379
+spring.data.falkordb.database=my-graph-db
+```
+
+> Note: If your username/password contains special characters (e.g. `@`, `:`, `/`), URL-encode them.
+
 ### 3. Create Entity
 
 ```java
@@ -99,7 +117,7 @@ public class PersonController {
 
 | Property | Description | Default |
 |----------|-------------|---------|
-| `spring.data.falkordb.uri` | FalkorDB server URI (format: `falkordb://host:port` or `redis://host:port`) | `falkordb://localhost:6379` |
+| `spring.data.falkordb.uri` | FalkorDB server URI (format: `falkordb://[username:password@]host:port` or `redis://[username:password@]host:port`) | `falkordb://localhost:6379` |
 | `spring.data.falkordb.database` | Database/graph name **(required)** | - |
 | `spring.data.falkordb.repositories.enabled` | Enable/disable repository auto-configuration | `true` |
 

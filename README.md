@@ -64,6 +64,24 @@ spring:
       database: social
 ```
 
+#### Authenticated connection
+
+If your FalkorDB endpoint requires authentication (ACL username + password), include credentials in the URI:
+
+```properties
+spring.data.falkordb.uri=falkordb://username:password@localhost:6379
+spring.data.falkordb.database=social
+```
+
+You can also use the `redis://` scheme:
+
+```properties
+spring.data.falkordb.uri=redis://username:password@localhost:6379
+spring.data.falkordb.database=social
+```
+
+> Note: If your username/password contains special characters (e.g. `@`, `:`, `/`), URL-encode them.
+
 With the starter, all beans are auto-configured, and you can start using repositories immediately!
 
 ### Standalone Spring (Manual Configuration)
