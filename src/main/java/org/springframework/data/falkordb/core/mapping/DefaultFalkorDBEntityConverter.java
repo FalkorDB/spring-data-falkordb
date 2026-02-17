@@ -191,7 +191,7 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 						// Collection of records (e.g. when query returns nested rows)
 						relatedEntities.add(read(targetType, (FalkorDBClient.Record) item));
 					}
-					else if (isNodeLike(item)) {
+					else if (isNodeEntity(item) || (isNodeLike(item) && !isEdgeEntity(item))) {
 						// Collection of raw node objects (e.g. collect(s) where s is a node)
 						Object entity = readFromNodeObject(item, targetType);
 						if (entity != null) {
@@ -448,26 +448,28 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		try {
 			String propertyName = property.getGraphPropertyName();
 
-			// Handle ID property specially
+			// Handle ID properties specially.
+			//
+			// Important distinction:
+			// - External/user-defined IDs live as node properties (e.g. @Id String email)
+			// - Internal IDs (id(n)) are not node properties and must be obtained via
+			//   explicit projections (nodeId/id) or via the node object's internal id.
 			if (property.isIdProperty()) {
-				// 1) For user-defined IDs stored as node properties (e.g. @Id String id),
-				//    try to read the value from the node object first – same strategy as
-				//    for regular properties. This is the shape produced by repository
-				//    queries where the node is returned as "n" and the id lives inside it.
+				if (property.isInternalIdProperty()) {
+					// Internal FalkorDB id (id(n))
+					return getNodeIdFromRecord(record);
+				}
+
+				// External/user-defined id stored as node property
 				Object nodeIdValue = extractValueFromNodeObject(record, propertyName);
 				if (nodeIdValue != null) {
 					return nodeIdValue;
 				}
 
-				// 2) Fall back to explicit internal ID aliases when present. This keeps
-				//    support for projections that expose id(n) AS nodeId / id.
-				Object nodeId = record.get("nodeId");
-				if (nodeId != null) {
-					return nodeId;
-				}
-				Object id = record.get("id");
-				if (id != null) {
-					return id;
+				// Fallback: allow explicitly returned id column (e.g. RETURN n.id AS id)
+				Object direct = safeRecordGet(record, propertyName);
+				if (direct != null) {
+					return direct;
 				}
 			}
 
@@ -806,18 +808,54 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 	 * @return the node ID, or null if unable to extract
 	 */
 	private Object getNodeIdFromRecord(FalkorDBClient.Record record) {
-		try {
-			// Try to get explicit ID field first
-			Object explicitId = record.get("id");
-			if (explicitId != null) {
-				return explicitId;
-			}
-			// Fallback to internal node ID
-			return record.get("nodeId");
-		}
-		catch (Exception ex) {
+		if (record == null) {
 			return null;
 		}
+
+		// 1) Preferred explicit alias: `id(n) AS nodeId`
+		Object nodeId = safeRecordGet(record, "nodeId");
+		Object normalized = normalizeInternalIdIfPossible(nodeId);
+		if (normalized != null) {
+			return normalized;
+		}
+
+		// 2) Support `id(n) AS id` (but only if it's numeric; `id` might also be an
+		//    external @Id property such as String email)
+		Object idAlias = safeRecordGet(record, "id");
+		Object normalizedIdAlias = normalizeInternalIdIfPossible(idAlias);
+		if (normalizedIdAlias != null) {
+			return normalizedIdAlias;
+		}
+
+		// 3) Fall back to the node object's internal id (jfalkordb GraphEntity.getId())
+		Object nodeObj = findNodeObject(record);
+		if (nodeObj != null) {
+			try {
+				java.lang.reflect.Method getId = nodeObj.getClass().getMethod("getId");
+				Object internalId = getId.invoke(nodeObj);
+				Object normalizedInternalId = normalizeInternalIdIfPossible(internalId);
+				if (normalizedInternalId != null) {
+					return normalizedInternalId;
+				}
+			}
+			catch (Exception ignored) {
+				// ignore
+			}
+		}
+
+		return null;
+	}
+
+	private Object normalizeInternalIdIfPossible(Object id) {
+		if (!(id instanceof Number)) {
+			return null;
+		}
+		Number num = (Number) id;
+		long asLong = num.longValue();
+		if (asLong >= Integer.MIN_VALUE && asLong <= Integer.MAX_VALUE) {
+			return (int) asLong;
+		}
+		return asLong;
 	}
 
 	/**
@@ -1131,7 +1169,14 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		SimpleRecord(Object nodeObj, Object nodeId) {
 			this.data = new HashMap<>();
 			this.nodeId = nodeId;
-			// Try to extract properties from node object
+
+			// Always expose the raw node object under the canonical alias "n" so that
+			// DefaultFalkorDBEntityConverter can extract properties via getProperty /
+			// getEntityPropertyNames (jfalkordb GraphEntity-style API).
+			this.data.put("n", nodeObj);
+
+			// Best-effort extraction for alternative node representations that provide
+			// getProperties() directly.
 			try {
 				java.lang.reflect.Method getPropertiesMethod = nodeObj.getClass().getMethod("getProperties");
 				@SuppressWarnings("unchecked")
@@ -1309,11 +1354,19 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		if (n != null) {
 			return n;
 		}
-		// Fall back to first node-like object in the record.
+
+		// Prefer actual node objects over edges (both are GraphEntity-like in jfalkordb).
 		try {
 			for (String key : record.keys()) {
 				Object v = safeRecordGet(record, key);
-				if (isNodeLike(v)) {
+				if (isNodeEntity(v)) {
+					return v;
+				}
+			}
+			// Fallback to first graph-entity-like object (keeps support for custom stubs in tests)
+			for (String key : record.keys()) {
+				Object v = safeRecordGet(record, key);
+				if (isNodeLike(v) && !isEdgeEntity(v)) {
 					return v;
 				}
 			}
@@ -1347,6 +1400,37 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		}
 		try {
 			type.getMethod("getProperties");
+			return true;
+		}
+		catch (NoSuchMethodException ignored) {
+			return false;
+		}
+	}
+
+	private boolean isNodeEntity(Object value) {
+		if (value == null) {
+			return false;
+		}
+		Class<?> type = value.getClass();
+		try {
+			type.getMethod("getNumberOfLabels");
+			type.getMethod("getLabel", int.class);
+			return true;
+		}
+		catch (NoSuchMethodException ignored) {
+			return false;
+		}
+	}
+
+	private boolean isEdgeEntity(Object value) {
+		if (value == null) {
+			return false;
+		}
+		Class<?> type = value.getClass();
+		try {
+			type.getMethod("getRelationshipType");
+			type.getMethod("getSource");
+			type.getMethod("getDestination");
 			return true;
 		}
 		catch (NoSuchMethodException ignored) {
