@@ -27,8 +27,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,6 +122,28 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 
 	private <R> R read(final TypeInformation<? extends R> type, final FalkorDBClient.Record record,
 			final FalkorDBPersistentEntity<R> entity) {
+		return read(type, record, entity, true);
+	}
+
+	@SuppressWarnings("unchecked")
+	private <R> R readWithoutRelationshipLoading(final Class<R> type, final FalkorDBClient.Record record) {
+		if (record == null) {
+			return null;
+		}
+
+		if (isPrimitiveOrWrapperType(type)) {
+			return readPrimitiveValue(type, record);
+		}
+
+		TypeInformation<? extends R> typeInfo = TypeInformation.of(type);
+		FalkorDBPersistentEntity<R> entity = (FalkorDBPersistentEntity<R>) this.mappingContext
+			.getRequiredPersistentEntity(typeInfo);
+
+		return read(typeInfo, record, entity, false);
+	}
+
+	private <R> R read(final TypeInformation<? extends R> type, final FalkorDBClient.Record record,
+			final FalkorDBPersistentEntity<R> entity, boolean loadRelationships) {
 
 		// Create parameter value provider for constructor parameters
 		ParameterValueProvider<FalkorDBPersistentProperty> parameterProvider = new FalkorDBParameterValueProvider(
@@ -140,6 +164,11 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			}
 
 			if (property.isRelationship()) {
+				// Prevent unbounded graph traversal when mapping nested entities.
+				if (!loadRelationships) {
+					return;
+				}
+
 				// Try to hydrate from record first
 				Object relationshipValue = tryHydrateRelationshipFromRecord(record, property);
 				if (relationshipValue == null) {
@@ -156,9 +185,10 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			// Get property value from record
 			Object value = getValueFromRecord(record, property);
 			if (value != null) {
-				// Convert value to the correct type
-				Object convertedValue = convertValueFromFalkorDB(value, property.getType());
-				accessor.setProperty(property, convertedValue);
+				Object convertedValue = convertValueForProperty(value, property);
+				if (convertedValue != null) {
+					accessor.setProperty(property, convertedValue);
+				}
 			}
 		});
 
@@ -185,13 +215,14 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 
 		if (isCollectionProperty(property)) {
 			if (value instanceof Collection) {
-				List<Object> relatedEntities = new ArrayList<>();
+				Collection<Object> relatedEntities = createRelationshipCollection(property);
 				for (Object item : (Collection<?>) value) {
 					if (item instanceof FalkorDBClient.Record) {
 						// Collection of records (e.g. when query returns nested rows)
-						relatedEntities.add(read(targetType, (FalkorDBClient.Record) item));
+						relatedEntities.add(readWithoutRelationshipLoading((Class) targetType,
+								(FalkorDBClient.Record) item));
 					}
-					else if (isNodeLike(item)) {
+					else if (isNodeEntity(item) || (isNodeLike(item) && !isEdgeEntity(item))) {
 						// Collection of raw node objects (e.g. collect(s) where s is a node)
 						Object entity = readFromNodeObject(item, targetType);
 						if (entity != null) {
@@ -201,9 +232,10 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 				}
 				return relatedEntities;
 			}
-		} else {
+		}
+		else {
 			if (value instanceof FalkorDBClient.Record) {
-				return read(targetType, (FalkorDBClient.Record) value);
+				return readWithoutRelationshipLoading((Class) targetType, (FalkorDBClient.Record) value);
 			}
 		}
 
@@ -444,30 +476,110 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		return value;
 	}
 
+	private Object convertValueForProperty(Object value, FalkorDBPersistentProperty property) {
+		if (value == null) {
+			return null;
+		}
+
+		Class<?> targetType = property.getType();
+
+		// Collection mapping for DTO projections (e.g. RETURN s AS skill, collect(f) AS field)
+		if (value instanceof Collection && Collection.class.isAssignableFrom(targetType)) {
+			Collection<?> items = (Collection<?>) value;
+			Collection<Object> converted = createRelationshipCollection(property);
+			Class<?> componentType = property.getComponentType();
+			for (Object item : items) {
+				if (componentType != null) {
+					converted.add(convertSingleValue(item, componentType));
+				}
+				else {
+					converted.add(item);
+				}
+			}
+			return converted;
+		}
+
+		// Array mapping for collect(...) implementations returning arrays
+		if (value.getClass().isArray() && Collection.class.isAssignableFrom(targetType)) {
+			int len = java.lang.reflect.Array.getLength(value);
+			Collection<Object> converted = createRelationshipCollection(property);
+			Class<?> componentType = property.getComponentType();
+			for (int i = 0; i < len; i++) {
+				Object item = java.lang.reflect.Array.get(value, i);
+				if (componentType != null) {
+					converted.add(convertSingleValue(item, componentType));
+				}
+				else {
+					converted.add(item);
+				}
+			}
+			return converted;
+		}
+
+		return convertSingleValue(value, targetType);
+	}
+
+	@SuppressWarnings("unchecked")
+	private Object convertSingleValue(Object value, Class<?> targetType) {
+		if (value == null) {
+			return null;
+		}
+
+		if (targetType.isInstance(value)) {
+			return value;
+		}
+
+		// Record -> entity (nested result mapping)
+		if (value instanceof FalkorDBClient.Record) {
+			return readWithoutRelationshipLoading((Class) targetType, (FalkorDBClient.Record) value);
+		}
+
+		// Node object -> entity (projection mapping)
+		if (isNodeEntity(value) || (isNodeLike(value) && !isEdgeEntity(value))) {
+			Object entity = readFromNodeObject(value, targetType);
+			if (entity != null) {
+				return entity;
+			}
+		}
+
+		return convertValueFromFalkorDB(value, targetType);
+	}
+
 	private Object getValueFromRecord(final FalkorDBClient.Record record, final FalkorDBPersistentProperty property) {
 		try {
 			String propertyName = property.getGraphPropertyName();
 
-			// Handle ID property specially
+			// Handle ID properties specially.
+			//
+			// Important distinction:
+			// - External/user-defined IDs live as node properties (e.g. @Id String email)
+			// - Internal IDs (id(n)) are not node properties and must be obtained via
+			//   explicit projections (nodeId/id) or via the node object's internal id.
 			if (property.isIdProperty()) {
-				// 1) For user-defined IDs stored as node properties (e.g. @Id String id),
-				//    try to read the value from the node object first – same strategy as
-				//    for regular properties. This is the shape produced by repository
-				//    queries where the node is returned as "n" and the id lives inside it.
+				if (property.isInternalIdProperty()) {
+					// Internal FalkorDB id (id(n))
+					return getNodeIdFromRecord(record);
+				}
+
+				// External/user-defined id stored as node property
 				Object nodeIdValue = extractValueFromNodeObject(record, propertyName);
 				if (nodeIdValue != null) {
 					return nodeIdValue;
 				}
 
-				// 2) Fall back to explicit internal ID aliases when present. This keeps
-				//    support for projections that expose id(n) AS nodeId / id.
-				Object nodeId = record.get("nodeId");
-				if (nodeId != null) {
-					return nodeId;
+				// Fallback: allow explicitly returned id column (e.g. RETURN n.id AS id)
+				Object direct = safeRecordGet(record, propertyName);
+				if (direct != null) {
+					return direct;
 				}
-				Object id = record.get("id");
-				if (id != null) {
-					return id;
+
+				// Compatibility: numeric @Id properties (Long/Integer) are often used to represent
+				// the internal node id even without @GeneratedValue.
+				if (isNumericType(property.getType())) {
+					Object internal = getNodeIdFromRecord(record);
+					if (internal != null) {
+						return internal;
+					}
 				}
 			}
 
@@ -501,8 +613,11 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			return null;
 		}
 
-		String relationshipType = relationshipAnnotation.value();
-		if (relationshipType.isEmpty()) {
+		// Use the persistent property's relationship type resolution to support both
+		// @Relationship("TYPE") and @Relationship(type = "TYPE") usage. This also avoids
+		// relying on @AliasFor processing in reflective access.
+		String relationshipType = property.getRelationshipType();
+		if (relationshipType == null || relationshipType.isEmpty()) {
 			// Use property name as relationship type if not specified
 			relationshipType = property.getName().toUpperCase();
 		}
@@ -576,8 +691,8 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			return;
 		}
 
-		String relationshipType = relationshipAnnotation.value();
-		if (relationshipType.isEmpty()) {
+		String relationshipType = property.getRelationshipType();
+		if (relationshipType == null || relationshipType.isEmpty()) {
 			relationshipType = property.getName().toUpperCase();
 		}
 
@@ -806,18 +921,54 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 	 * @return the node ID, or null if unable to extract
 	 */
 	private Object getNodeIdFromRecord(FalkorDBClient.Record record) {
-		try {
-			// Try to get explicit ID field first
-			Object explicitId = record.get("id");
-			if (explicitId != null) {
-				return explicitId;
-			}
-			// Fallback to internal node ID
-			return record.get("nodeId");
-		}
-		catch (Exception ex) {
+		if (record == null) {
 			return null;
 		}
+
+		// 1) Preferred explicit alias: `id(n) AS nodeId`
+		Object nodeId = safeRecordGet(record, "nodeId");
+		Object normalized = normalizeInternalIdIfPossible(nodeId);
+		if (normalized != null) {
+			return normalized;
+		}
+
+		// 2) Support `id(n) AS id` (but only if it's numeric; `id` might also be an
+		//    external @Id property such as String email)
+		Object idAlias = safeRecordGet(record, "id");
+		Object normalizedIdAlias = normalizeInternalIdIfPossible(idAlias);
+		if (normalizedIdAlias != null) {
+			return normalizedIdAlias;
+		}
+
+		// 3) Fall back to the node object's internal id (jfalkordb GraphEntity.getId())
+		Object nodeObj = findNodeObject(record);
+		if (nodeObj != null) {
+			try {
+				java.lang.reflect.Method getId = nodeObj.getClass().getMethod("getId");
+				Object internalId = getId.invoke(nodeObj);
+				Object normalizedInternalId = normalizeInternalIdIfPossible(internalId);
+				if (normalizedInternalId != null) {
+					return normalizedInternalId;
+				}
+			}
+			catch (Exception ignored) {
+				// ignore
+			}
+		}
+
+		return null;
+	}
+
+	private Object normalizeInternalIdIfPossible(Object id) {
+		if (!(id instanceof Number)) {
+			return null;
+		}
+		Number num = (Number) id;
+		long asLong = num.longValue();
+		if (asLong >= Integer.MIN_VALUE && asLong <= Integer.MAX_VALUE) {
+			return (int) asLong;
+		}
+		return asLong;
 	}
 
 	/**
@@ -843,6 +994,40 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 	 */
 	private boolean isCollectionProperty(FalkorDBPersistentProperty property) {
 		return Collection.class.isAssignableFrom(property.getType());
+	}
+
+	private Collection<Object> createRelationshipCollection(FalkorDBPersistentProperty property) {
+		Class<?> propertyType = property.getType();
+
+		// Default to list semantics.
+		if (Set.class.isAssignableFrom(propertyType)) {
+			return new LinkedHashSet<>();
+		}
+		if (List.class.isAssignableFrom(propertyType)) {
+			return new ArrayList<>();
+		}
+
+		// Try to instantiate concrete collection types.
+		if (!propertyType.isInterface() && Collection.class.isAssignableFrom(propertyType)) {
+			try {
+				return (Collection<Object>) propertyType.getDeclaredConstructor().newInstance();
+			}
+			catch (Exception ignored) {
+				return new ArrayList<>();
+			}
+		}
+
+		return new ArrayList<>();
+	}
+
+	private boolean isNumericType(Class<?> type) {
+		if (type == null) {
+			return false;
+		}
+		if (type.isPrimitive()) {
+			return type == int.class || type == long.class || type == short.class || type == byte.class;
+		}
+		return Number.class.isAssignableFrom(type);
 	}
 
 	/**
@@ -946,15 +1131,15 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 	 * @param property the property being loaded
 	 * @return the list of loaded entities
 	 */
-	private List<Object> loadRelationshipCollection(String cypher, Map<String, Object> parameters, Class<?> targetType,
+	private Object loadRelationshipCollection(String cypher, Map<String, Object> parameters, Class<?> targetType,
 			FalkorDBPersistentProperty property) {
 		if (this.falkorDBClient == null) {
-			return new ArrayList<>(); // No client available for relationship loading
+			return createRelationshipCollection(property); // No client available for relationship loading
 		}
 
 		try {
 			return this.falkorDBClient.query(cypher, parameters, result -> {
-				List<Object> relatedEntities = new ArrayList<>();
+				Collection<Object> relatedEntities = createRelationshipCollection(property);
 				for (FalkorDBClient.Record record : result.records()) {
 					// Read the related entity from the record
 					Object entity = readRelatedEntity(record, targetType);
@@ -966,8 +1151,8 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			});
 		}
 		catch (Exception ex) {
-			// Log error and return empty list for failed relationship loading
-			return new ArrayList<>();
+			// Log error and return empty collection for failed relationship loading
+			return createRelationshipCollection(property);
 		}
 	}
 
@@ -993,7 +1178,7 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			// Strategy 1: Try to get target node directly
 			Object targetNode = record.get("target");
 			if (targetNode instanceof FalkorDBClient.Record) {
-				return read(targetType, (FalkorDBClient.Record) targetNode);
+				return readWithoutRelationshipLoading((Class) targetType, (FalkorDBClient.Record) targetNode);
 			}
 
 			// Strategy 2: Try to create a record-like structure from available data
@@ -1027,7 +1212,7 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		try {
 			// Create a simple record wrapper that provides the necessary data
 			SimpleRecord wrapperRecord = new SimpleRecord(nodeObj, nodeId);
-			return read(targetType, wrapperRecord);
+			return readWithoutRelationshipLoading((Class) targetType, wrapperRecord);
 		}
 		catch (Exception ex) {
 			return null;
@@ -1047,7 +1232,7 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			if (properties != null && !properties.isEmpty()) {
 				// Create a record from the properties
 				SimpleRecord record = new SimpleRecord(properties);
-				return read(targetType, record);
+				return readWithoutRelationshipLoading((Class) targetType, record);
 			}
 			return null;
 		}
@@ -1131,7 +1316,14 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		SimpleRecord(Object nodeObj, Object nodeId) {
 			this.data = new HashMap<>();
 			this.nodeId = nodeId;
-			// Try to extract properties from node object
+
+			// Always expose the raw node object under the canonical alias "n" so that
+			// DefaultFalkorDBEntityConverter can extract properties via getProperty /
+			// getEntityPropertyNames (jfalkordb GraphEntity-style API).
+			this.data.put("n", nodeObj);
+
+			// Best-effort extraction for alternative node representations that provide
+			// getProperties() directly.
 			try {
 				java.lang.reflect.Method getPropertiesMethod = nodeObj.getClass().getMethod("getProperties");
 				@SuppressWarnings("unchecked")
@@ -1309,11 +1501,19 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		if (n != null) {
 			return n;
 		}
-		// Fall back to first node-like object in the record.
+
+		// Prefer actual node objects over edges (both are GraphEntity-like in jfalkordb).
 		try {
 			for (String key : record.keys()) {
 				Object v = safeRecordGet(record, key);
-				if (isNodeLike(v)) {
+				if (isNodeEntity(v)) {
+					return v;
+				}
+			}
+			// Fallback to first graph-entity-like object (keeps support for custom stubs in tests)
+			for (String key : record.keys()) {
+				Object v = safeRecordGet(record, key);
+				if (isNodeLike(v) && !isEdgeEntity(v)) {
 					return v;
 				}
 			}
@@ -1347,6 +1547,37 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 		}
 		try {
 			type.getMethod("getProperties");
+			return true;
+		}
+		catch (NoSuchMethodException ignored) {
+			return false;
+		}
+	}
+
+	private boolean isNodeEntity(Object value) {
+		if (value == null) {
+			return false;
+		}
+		Class<?> type = value.getClass();
+		try {
+			type.getMethod("getNumberOfLabels");
+			type.getMethod("getLabel", int.class);
+			return true;
+		}
+		catch (NoSuchMethodException ignored) {
+			return false;
+		}
+	}
+
+	private boolean isEdgeEntity(Object value) {
+		if (value == null) {
+			return false;
+		}
+		Class<?> type = value.getClass();
+		try {
+			type.getMethod("getRelationshipType");
+			type.getMethod("getSource");
+			type.getMethod("getDestination");
 			return true;
 		}
 		catch (NoSuchMethodException ignored) {
