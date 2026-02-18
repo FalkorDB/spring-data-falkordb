@@ -185,9 +185,10 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			// Get property value from record
 			Object value = getValueFromRecord(record, property);
 			if (value != null) {
-				// Convert value to the correct type
-				Object convertedValue = convertValueFromFalkorDB(value, property.getType());
-				accessor.setProperty(property, convertedValue);
+				Object convertedValue = convertValueForProperty(value, property);
+				if (convertedValue != null) {
+					accessor.setProperty(property, convertedValue);
+				}
 			}
 		});
 
@@ -473,6 +474,75 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 
 		// Fallback: return the original value
 		return value;
+	}
+
+	private Object convertValueForProperty(Object value, FalkorDBPersistentProperty property) {
+		if (value == null) {
+			return null;
+		}
+
+		Class<?> targetType = property.getType();
+
+		// Collection mapping for DTO projections (e.g. RETURN s AS skill, collect(f) AS field)
+		if (value instanceof Collection && Collection.class.isAssignableFrom(targetType)) {
+			Collection<?> items = (Collection<?>) value;
+			Collection<Object> converted = createRelationshipCollection(property);
+			Class<?> componentType = property.getComponentType();
+			for (Object item : items) {
+				if (componentType != null) {
+					converted.add(convertSingleValue(item, componentType));
+				}
+				else {
+					converted.add(item);
+				}
+			}
+			return converted;
+		}
+
+		// Array mapping for collect(...) implementations returning arrays
+		if (value.getClass().isArray() && Collection.class.isAssignableFrom(targetType)) {
+			int len = java.lang.reflect.Array.getLength(value);
+			Collection<Object> converted = createRelationshipCollection(property);
+			Class<?> componentType = property.getComponentType();
+			for (int i = 0; i < len; i++) {
+				Object item = java.lang.reflect.Array.get(value, i);
+				if (componentType != null) {
+					converted.add(convertSingleValue(item, componentType));
+				}
+				else {
+					converted.add(item);
+				}
+			}
+			return converted;
+		}
+
+		return convertSingleValue(value, targetType);
+	}
+
+	@SuppressWarnings("unchecked")
+	private Object convertSingleValue(Object value, Class<?> targetType) {
+		if (value == null) {
+			return null;
+		}
+
+		if (targetType.isInstance(value)) {
+			return value;
+		}
+
+		// Record -> entity (nested result mapping)
+		if (value instanceof FalkorDBClient.Record) {
+			return readWithoutRelationshipLoading((Class) targetType, (FalkorDBClient.Record) value);
+		}
+
+		// Node object -> entity (projection mapping)
+		if (isNodeEntity(value) || (isNodeLike(value) && !isEdgeEntity(value))) {
+			Object entity = readFromNodeObject(value, targetType);
+			if (entity != null) {
+				return entity;
+			}
+		}
+
+		return convertValueFromFalkorDB(value, targetType);
 	}
 
 	private Object getValueFromRecord(final FalkorDBClient.Record record, final FalkorDBPersistentProperty property) {
