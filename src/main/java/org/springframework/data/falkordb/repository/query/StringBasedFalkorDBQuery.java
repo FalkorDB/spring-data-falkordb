@@ -79,6 +79,9 @@ public class StringBasedFalkorDBQuery implements RepositoryQuery {
 		ReturnedType returnedType = processor.getReturnedType();
 		Class<?> returnType = returnedType.getReturnedType();
 
+		boolean isClassBasedProjection = returnedType.isProjecting() && !returnType.isInterface();
+		Class<?> typeToRead = isClassBasedProjection ? returnType : returnedType.getDomainType();
+
 		if (queryMethod.isCountQuery()) {
 			// For count queries, execute the query and return the count
 			return processor.processResult(queryForScalar(query, parameterMap, Long.class));
@@ -96,8 +99,9 @@ public class StringBasedFalkorDBQuery implements RepositoryQuery {
 				return processor.processResult(queryForMaps(query, parameterMap));
 			}
 			else {
-				// For entity collections, use normal entity mapping
-				return processor.processResult(operations.query(query, parameterMap, returnedType.getDomainType()));
+				// For entity collections, use normal entity mapping.
+				// For DTO projections (class-based), read the result as the DTO type directly.
+				return processor.processResult(operations.query(query, parameterMap, (Class) typeToRead));
 			}
 		}
 
@@ -112,8 +116,9 @@ public class StringBasedFalkorDBQuery implements RepositoryQuery {
 			return processor.processResult(maps.isEmpty() ? null : maps.get(0));
 		}
 		else {
-			// For entity types, use normal entity mapping
-			Optional<?> result = operations.queryForObject(query, parameterMap, returnedType.getDomainType());
+			// For entity types, use normal entity mapping.
+			// For DTO projections (class-based), read the result as the DTO type directly.
+			Optional<?> result = operations.queryForObject(query, parameterMap, (Class) typeToRead);
 			return processor.processResult(result.orElse(null));
 		}
 	}

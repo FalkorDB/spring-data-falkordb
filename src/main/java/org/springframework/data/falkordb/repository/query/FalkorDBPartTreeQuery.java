@@ -94,11 +94,14 @@ public class FalkorDBPartTreeQuery implements RepositoryQuery {
 		CypherQuery cypherQuery = queryCreator.createQuery(sort, values);
 
 		// Execute the generated query
-		Class<?> domainType = this.queryMethod.getResultProcessor().getReturnedType().getDomainType();
+		var returnedType = this.queryMethod.getResultProcessor().getReturnedType();
+		Class<?> returnType = returnedType.getReturnedType();
+		boolean isClassBasedProjection = returnedType.isProjecting() && !returnType.isInterface();
+		Class<?> typeToRead = isClassBasedProjection ? returnType : returnedType.getDomainType();
 
 		if (this.partTree.isDelete()) {
 			// Handle delete queries
-			this.operations.query(cypherQuery.getQuery(), cypherQuery.getParameters(), domainType);
+			this.operations.query(cypherQuery.getQuery(), cypherQuery.getParameters(), returnedType.getDomainType());
 			return null;
 		}
 		else if (this.partTree.isCountProjection()) {
@@ -114,11 +117,11 @@ public class FalkorDBPartTreeQuery implements RepositoryQuery {
 		}
 		else if (this.queryMethod.isCollectionQuery()) {
 			// Handle collection returns (findBy...)
-			return this.operations.query(cypherQuery.getQuery(), cypherQuery.getParameters(), domainType);
+			return this.operations.query(cypherQuery.getQuery(), cypherQuery.getParameters(), (Class) typeToRead);
 		}
 		else {
 			// Handle single entity returns (findOneBy...)
-			return this.operations.queryForObject(cypherQuery.getQuery(), cypherQuery.getParameters(), domainType)
+			return this.operations.queryForObject(cypherQuery.getQuery(), cypherQuery.getParameters(), (Class) typeToRead)
 				.orElse(null);
 		}
 	}

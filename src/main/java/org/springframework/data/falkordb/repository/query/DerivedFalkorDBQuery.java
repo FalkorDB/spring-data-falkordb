@@ -100,6 +100,9 @@ public class DerivedFalkorDBQuery implements RepositoryQuery {
 
 		ResultProcessor processor = queryMethod.getResultProcessor();
 		ReturnedType returnedType = processor.getReturnedType();
+		Class<?> returnType = returnedType.getReturnedType();
+		boolean isClassBasedProjection = returnedType.isProjecting() && !returnType.isInterface();
+		Class<?> typeToRead = isClassBasedProjection ? returnType : returnedType.getDomainType();
 
 		// Handle delete queries
 		if (partTree.isDelete()) {
@@ -124,14 +127,13 @@ public class DerivedFalkorDBQuery implements RepositoryQuery {
 
 		// Handle collection queries
 		if (queryMethod.isCollectionQuery()) {
-			return processor
-				.processResult(operations.query(cypherQuery.getQuery(), cypherQuery.getParameters(),
-						returnedType.getDomainType()));
+			return processor.processResult(
+					operations.query(cypherQuery.getQuery(), cypherQuery.getParameters(), (Class) typeToRead));
 		}
 
 		// Single result query
 		Optional<?> result = operations.queryForObject(cypherQuery.getQuery(), cypherQuery.getParameters(),
-				returnedType.getDomainType());
+				(Class) typeToRead);
 		return processor.processResult(result.orElse(null));
 	}
 
