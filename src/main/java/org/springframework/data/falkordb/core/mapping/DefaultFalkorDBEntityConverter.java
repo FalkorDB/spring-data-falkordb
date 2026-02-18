@@ -613,8 +613,11 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			return null;
 		}
 
-		String relationshipType = relationshipAnnotation.value();
-		if (relationshipType.isEmpty()) {
+		// Use the persistent property's relationship type resolution to support both
+		// @Relationship("TYPE") and @Relationship(type = "TYPE") usage. This also avoids
+		// relying on @AliasFor processing in reflective access.
+		String relationshipType = property.getRelationshipType();
+		if (relationshipType == null || relationshipType.isEmpty()) {
 			// Use property name as relationship type if not specified
 			relationshipType = property.getName().toUpperCase();
 		}
@@ -688,8 +691,8 @@ public class DefaultFalkorDBEntityConverter implements FalkorDBEntityConverter {
 			return;
 		}
 
-		String relationshipType = relationshipAnnotation.value();
-		if (relationshipType.isEmpty()) {
+		String relationshipType = property.getRelationshipType();
+		if (relationshipType == null || relationshipType.isEmpty()) {
 			relationshipType = property.getName().toUpperCase();
 		}
 

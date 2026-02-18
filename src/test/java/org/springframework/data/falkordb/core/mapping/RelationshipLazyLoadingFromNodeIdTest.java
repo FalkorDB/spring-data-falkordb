@@ -63,6 +63,7 @@ class RelationshipLazyLoadingFromNodeIdTest {
 		User user = converter.read(User.class, record);
 
 		// Assert: relationship loaded via lazy relationship query using internal id extracted from node object
+		assertThat(client.lastQuery).contains("[:HAS_SKILL]");
 		assertThat(client.lastParameters).isNotNull();
 		assertThat(client.lastParameters.get("sourceId")).isEqualTo(100);
 
@@ -120,6 +121,7 @@ class RelationshipLazyLoadingFromNodeIdTest {
 
 		private final List<Record> responseRecords;
 
+		String lastQuery;
 		Map<String, Object> lastParameters;
 
 		CapturingClient(Record... records) {
@@ -143,6 +145,7 @@ class RelationshipLazyLoadingFromNodeIdTest {
 
 		@Override
 		public <T> T query(String query, Map<String, Object> parameters, Function<QueryResult, T> resultMapper) {
+			this.lastQuery = query;
 			this.lastParameters = parameters;
 			return resultMapper.apply(new QueryResult() {
 				@Override
