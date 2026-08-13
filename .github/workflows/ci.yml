@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     
     strategy:
+      fail-fast: false
       matrix:
         java: [17, 21]
         
@@ -39,20 +40,28 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y redis-tools
         
-    - name: Start FalkorDB
+    - name: Start and verify FalkorDB
       run: |
+        # Reduce Redis fork/overcommit warnings on GitHub runners
+        sudo sysctl vm.overcommit_memory=1 || true
+
         docker run -d --name falkordb -p 6379:6379 falkordb/falkordb:latest
-        # Wait for FalkorDB to be ready
-        echo "Waiting for FalkorDB to start..."
-        timeout 60 bash -c 'until nc -z localhost 6379; do sleep 1; done'
-        echo "FalkorDB is ready"
-        
-    - name: Verify FalkorDB connection
-      run: |
-        # Test basic Redis/FalkorDB connectivity
-        redis-cli -p 6379 ping || (echo "FalkorDB not responding" && exit 1)
-        # Test FalkorDB graph functionality
-        redis-cli -p 6379 GRAPH.QUERY test "RETURN 'Hello FalkorDB' as greeting" || (echo "FalkorDB graph functionality not working" && exit 1)
+
+        # Wait until FalkorDB answers protocol-level checks, not just TCP open.
+        # TCP readiness alone can race with startup and cause "Connection reset by peer".
+        echo "Waiting for FalkorDB to become ready..."
+        for i in $(seq 1 60); do
+          if redis-cli -h 127.0.0.1 -p 6379 ping 2>/dev/null | grep -q PONG \
+            && redis-cli -h 127.0.0.1 -p 6379 GRAPH.QUERY readycheck "RETURN 1 AS n" >/dev/null 2>&1; then
+            echo "FalkorDB is ready (attempt ${i})"
+            exit 0
+          fi
+          sleep 2
+        done
+
+        echo "FalkorDB failed to become ready"
+        docker logs falkordb || true
+        exit 1
         
     - name: Run tests
       run: ./mvnw clean verify -B -Dcheckstyle.skip=true -Dlicense.skip=true
