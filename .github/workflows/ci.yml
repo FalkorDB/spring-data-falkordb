@@ -42,17 +42,48 @@ jobs:
     - name: Start FalkorDB
       run: |
         docker run -d --name falkordb -p 6379:6379 falkordb/falkordb:latest
-        # Wait for FalkorDB to be ready
-        echo "Waiting for FalkorDB to start..."
-        timeout 60 bash -c 'until nc -z localhost 6379; do sleep 1; done'
+        echo "Waiting for FalkorDB to become ready..."
+        ready=false
+
+        for attempt in {1..60}; do
+          running="$(docker inspect --format='{{.State.Running}}' falkordb 2>/dev/null || true)"
+          if [ "$running" != "true" ]; then
+            echo "FalkorDB container exited before readiness checks passed"
+            docker logs falkordb || true
+            exit 1
+          fi
+
+          ping_response="$(redis-cli -h 127.0.0.1 -p 6379 ping 2>/dev/null || true)"
+          if [ "$ping_response" = "PONG" ] && redis-cli -h 127.0.0.1 -p 6379 GRAPH.QUERY ci_health "RETURN 1" >/dev/null 2>&1; then
+            ready=true
+            break
+          fi
+
+          sleep 1
+        done
+
+        if [ "$ready" != "true" ]; then
+          echo "Timed out waiting for FalkorDB readiness after 60 seconds"
+          docker logs falkordb || true
+          exit 1
+        fi
+
         echo "FalkorDB is ready"
         
     - name: Verify FalkorDB connection
       run: |
-        # Test basic Redis/FalkorDB connectivity
-        redis-cli -p 6379 ping || (echo "FalkorDB not responding" && exit 1)
-        # Test FalkorDB graph functionality
-        redis-cli -p 6379 GRAPH.QUERY test "RETURN 'Hello FalkorDB' as greeting" || (echo "FalkorDB graph functionality not working" && exit 1)
+        ping_response="$(redis-cli -h 127.0.0.1 -p 6379 ping 2>/dev/null || true)"
+        if [ "$ping_response" != "PONG" ]; then
+          echo "FalkorDB ping smoke test failed (expected PONG, got: ${ping_response:-<no response>})"
+          docker logs falkordb || true
+          exit 1
+        fi
+
+        if ! redis-cli -h 127.0.0.1 -p 6379 GRAPH.QUERY test "RETURN 'Hello FalkorDB' as greeting" >/dev/null 2>&1; then
+          echo "FalkorDB graph smoke test failed"
+          docker logs falkordb || true
+          exit 1
+        fi
         
     - name: Run tests
       run: ./mvnw clean verify -B -Dcheckstyle.skip=true -Dlicense.skip=true
